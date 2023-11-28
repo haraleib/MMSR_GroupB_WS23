@@ -25,6 +25,9 @@ class RepresentationsMap(TypedDict):
     mfcc_bow: pd.DataFrame
     mfcc_stats: pd.DataFrame
     musicnn: pd.DataFrame
+    bert: pd.DataFrame
+    tf_idf: pd.DataFrame
+    word2vec: pd.DataFrame
 
             
 class SampledHistory(TypedDict):
@@ -42,11 +45,14 @@ class SampledHistory(TypedDict):
     mfcc_bow: list[str]
     mfcc_stats: list[str]
     musicnn: list[str]
+    bert: list[str]
+    tf_idf: list[str]
+    word2vec: list[str]
 
 
 RepresentationKey = Literal["blf_correlation", "blf_deltaspectral", "blf_logfluc", "blf_spectralcontrast",
                             "blf_spectral", "blf_vardeltaspectral", "genres", "information", "ivec256",
-                            "ivec512", "ivec1024", "mfcc_bow", "mfcc_stats", "musicnn" ]
+                            "ivec512", "ivec1024", "mfcc_bow", "mfcc_stats", "musicnn", "bert", "tf_idf", "word2vec"]
 
 
 class Datasets:
@@ -66,7 +72,9 @@ class Datasets:
             "mfcc_bow": read_tsv("datasets/id_mfcc_bow_mmsr.tsv"),
             "mfcc_stats": read_tsv("datasets/id_mfcc_stats_mmsr.tsv"),
             "musicnn": read_tsv("datasets/id_musicnn_mmsr.tsv"),
-
+            "bert": read_tsv("datasets/id_lyrics_bert_mmsr.tsv"),
+            "tf_idf": read_tsv("datasets/id_lyrics_tf-idf_mmsr.tsv"),
+            "word2vec": read_tsv("datasets/id_lyrics_word2vec_mmsr.tsv")
         }
         self.sampled: SampledHistory = {
             "blf_correlation": [],
@@ -83,7 +91,9 @@ class Datasets:
             "mfcc_bow" : [],
             "mfcc_stats" : [],
             "musicnn" : [],
-
+            "bert": [],
+            "tf_idf": [],
+            "word2vec": []
         }
 
 

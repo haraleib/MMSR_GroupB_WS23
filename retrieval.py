@@ -4,6 +4,8 @@ from enum import IntEnum
 
 from song import Song, songs
 from datasets import datasets, RepresentationKey
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 class SimilarityMeasure(IntEnum):
@@ -15,6 +17,8 @@ class Retrieval:
         self.n = n
 
     def random_baseline(self, song: Song) -> pd.DataFrame:
+        np.random.seed(42)
+
         # Exclude the query song from the dataset (if it exists)
         exclude_mask = (songs.info["song"] != song.title) | (songs.info["artist"] != song.artist)
 
@@ -66,3 +70,59 @@ class Retrieval:
         ).sort_values("similarity", ascending=False)
 
         return filtered[["id", "similarity", "song", "artist"]]
+
+    # Function to calculate similarity between two tracks
+    def calculate_similarity(self, query_features, target_features):
+        similarity_matrix = cosine_similarity(query_features, target_features)
+        return similarity_matrix
+
+    # Function to retrieve top N similar tracks
+    def retrieve_top_similar_tracks(self, query_track_id, feature: RepresentationKey):
+        features_data = datasets.representations[feature]
+        if query_track_id not in features_data['id'].values:
+            # print(f"Track ID {query_track_id} not found in the data.")
+            raise ValueError(f"Track ID {query_track_id} not found in the data.")
+        
+        query_track_features = features_data[features_data['id'] == query_track_id].iloc[:, 1:].values
+
+        # Calculate similarity with the given features
+        similarity_matrix = self.calculate_similarity(query_track_features, features_data.iloc[:, 1:].values)
+
+        # Get the indices of the top N similar tracks
+        top_indices = np.argsort(similarity_matrix[0])[-(self.n+1):][::-1] # similarity 1 = song itself ... should not be returned
+
+        # Create a DataFrame to store the results
+        result_df = pd.DataFrame(columns=['Track ID', 'Similarity', 'Artist', 'Song'])
+
+
+        # Create a list to store rows
+        result_rows = []
+
+        # Populate the list with song and artist information
+        for track_index in top_indices:
+            track_id = features_data.loc[track_index, 'id']
+            if track_id == query_track_id:
+                continue # skip the query track
+
+            info_row = songs.info[songs.info['id'] == track_id]
+            if not info_row.empty:
+                artist = info_row['artist'].values[0]
+                song = info_row['song'].values[0]
+
+                result_rows.append({
+                    'id': track_id,
+                    'similarity': similarity_matrix[0][track_index],
+                    'song': song,
+                    'artist': artist,
+                })
+                
+        # Create the DataFrame from the list of dictionaries
+        result_df = pd.DataFrame(result_rows)
+
+        # Sort the DataFrame based on "Similarity" column
+        result_df = result_df.sort_values(by='similarity', ascending=False)
+
+        # Display sorted results
+        # print(f"\nTop {self.n} Similar Tracks:")
+        # print(result_df)
+        return result_df
