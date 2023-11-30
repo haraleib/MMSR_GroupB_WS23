@@ -16,16 +16,17 @@ class Retrieval:
     def __init__(self, n: int):
         self.n = n
 
-    def random_baseline(self, song: Song) -> pd.DataFrame:
+    def random_baseline(self, song_id) -> pd.DataFrame:
         np.random.seed(42)
 
         # Exclude the query song from the dataset (if it exists)
-        exclude_mask = (songs.info["song"] != song.title) | (songs.info["artist"] != song.artist)
+        # exclude_mask = (songs.info["song"] != song.title) | (songs.info["artist"] != song.artist)
+        exclude_mask = (songs.info["id"] != song_id)
 
         # Select N random songs from the filtered data
         random_results = songs.info[exclude_mask].sample(n=self.n)
 
-        return random_results[["song", "artist"]]
+        return random_results[["id", "song", "artist"]]
 
     def text_based_similarity(
             self,
@@ -33,7 +34,7 @@ class Retrieval:
             feature: RepresentationKey,
             similarity_measure: SimilarityMeasure
     ) -> pd.DataFrame:
-        representations = datasets.representations[feature]
+        representations = datasets.get_dataset(feature)
 
         # representation of the query song
         query_repr = representations[(representations["id"] == song_id)]
@@ -78,7 +79,7 @@ class Retrieval:
 
     # Function to retrieve top N similar tracks
     def retrieve_top_similar_tracks(self, query_track_id, feature: RepresentationKey):
-        features_data = datasets.representations[feature]
+        features_data = datasets.get_dataset(feature)
         if query_track_id not in features_data['id'].values:
             # print(f"Track ID {query_track_id} not found in the data.")
             raise ValueError(f"Track ID {query_track_id} not found in the data.")

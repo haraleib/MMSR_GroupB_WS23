@@ -57,24 +57,24 @@ RepresentationKey = Literal["blf_correlation", "blf_deltaspectral", "blf_logfluc
 
 class Datasets:
     def __init__(self):
-        self.representations: RepresentationsMap = {
-            "blf_correlation": read_tsv("datasets/id_blf_correlation_mmsr.tsv"),
-            "blf_deltaspectral": read_tsv("datasets/id_blf_deltaspectral_mmsr.tsv"),
-            "blf_logfluc": read_tsv("datasets/id_blf_logfluc_mmsr.tsv"),
-            "blf_spectralcontrast": read_tsv("datasets/id_blf_spectralcontrast_mmsr.tsv"),
-            "blf_spectral": read_tsv("datasets/id_blf_spectral_mmsr.tsv"),
-            "blf_vardeltaspectral": read_tsv("datasets/id_blf_vardeltaspectral_mmsr.tsv"),
-            "genres": read_tsv("datasets/id_genres_mmsr.tsv"),
-            "information": read_tsv("datasets/id_information_mmsr.tsv"),
-            "ivec256": read_tsv("datasets/id_ivec256_mmsr.tsv"),
-            "ivec512": read_tsv("datasets/id_ivec512_mmsr.tsv"),
-            "ivec1024": read_tsv("datasets/id_ivec1024_mmsr.tsv"),
-            "mfcc_bow": read_tsv("datasets/id_mfcc_bow_mmsr.tsv"),
-            "mfcc_stats": read_tsv("datasets/id_mfcc_stats_mmsr.tsv"),
-            "musicnn": read_tsv("datasets/id_musicnn_mmsr.tsv"),
-            "bert": read_tsv("datasets/id_lyrics_bert_mmsr.tsv"),
-            "tf_idf": read_tsv("datasets/id_lyrics_tf-idf_mmsr.tsv"),
-            "word2vec": read_tsv("datasets/id_lyrics_word2vec_mmsr.tsv")
+        self._paths = {
+            "blf_correlation": "datasets/id_blf_correlation_mmsr.tsv",
+            "blf_deltaspectral": "datasets/id_blf_deltaspectral_mmsr.tsv",
+            "blf_logfluc": "datasets/id_blf_logfluc_mmsr.tsv",
+            "blf_spectralcontrast": "datasets/id_blf_spectralcontrast_mmsr.tsv",
+            "blf_spectral": "datasets/id_blf_spectral_mmsr.tsv",
+            "blf_vardeltaspectral": "datasets/id_blf_vardeltaspectral_mmsr.tsv",
+            "genres": "datasets/id_genres_mmsr.tsv",
+            "information": "datasets/id_information_mmsr.tsv",
+            "ivec256": "datasets/id_ivec256_mmsr.tsv",
+            "ivec512": "datasets/id_ivec512_mmsr.tsv",
+            "ivec1024": "datasets/id_ivec1024_mmsr.tsv",
+            "mfcc_bow": "datasets/id_mfcc_bow_mmsr.tsv",
+            "mfcc_stats": "datasets/id_mfcc_stats_mmsr.tsv",
+            "musicnn": "datasets/id_musicnn_mmsr.tsv",
+            "bert": "datasets/id_lyrics_bert_mmsr.tsv",
+            "tf_idf": "datasets/id_lyrics_tf-idf_mmsr.tsv",
+            "word2vec": "datasets/id_lyrics_word2vec_mmsr.tsv"
         }
         self.sampled: SampledHistory = {
             "blf_correlation": [],
@@ -95,7 +95,14 @@ class Datasets:
             "tf_idf": [],
             "word2vec": []
         }
+        self._cached = {}
 
+    def get_dataset(self, key: RepresentationKey) -> pd.DataFrame:
+        if key in self._cached:
+            return self._cached[key]
+        df = read_tsv(self._paths[key])
+        self._cached[key] = df
+        return df
 
 datasets = Datasets()
 
