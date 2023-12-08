@@ -1,14 +1,18 @@
-from math import log2
 import time
-
+from math import log2
+from tqdm.notebook import tqdm
 from matplotlib import pyplot as plt
-from precision_recall import retrievals
+
+from retrieval import Retrieval
 from utils import unpickle_or_compute
+from precision_recall import RETRIEVAL_SYSTEMS
+
 
 class Ndcg:
-    def __init__(self, n, genres):
-        self._n = n
+    def __init__(self, genres):
+        self._n = 10
         self._genres = genres
+        self._ret = Retrieval(n=self._n)
 
     def plot(self):
         ndcgs = self._compute()
@@ -18,58 +22,62 @@ class Ndcg:
         for retrieval_name, ndcg in ndcgs.items():
             retrieval_names.append(retrieval_name)
             ndcg_values.append(ndcg)
+
         ndcg_values, retrieval_names = zip(*sorted(zip(ndcg_values, retrieval_names), reverse=False))
+
         plt.bar(retrieval_names, ndcg_values)
         plt.xlabel("Retrieval method")
-        plt.ylabel("NDCG")
+        plt.ylabel("nDCG")
+
         # plt.xticks(rotation=45)
         plt.xticks(rotation=30, ha='right')
-        plt.title(f"NDCG@{self._n}")
+        plt.title(f"nDCG@{self._n}")
         plt.show()
 
     def _compute(self):
-        ndcgs = {}
-        i = 0
         chunk_size = 1000
-        chunks = [self._genres.get_song_ids_with_genre_info()[i:i + chunk_size] for i in range(0, len(self._genres.get_song_ids_with_genre_info()), chunk_size)]
-        for chunk_id, chunk in enumerate(chunks):
-            print(f"Processing chunk {chunk_id + 1}/{len(chunks)}")
+        chunks = [
+            self._genres.get_song_ids()[i:i + chunk_size]
+            for i in range(0, len(self._genres.get_song_ids()), chunk_size)
+        ]
 
-            chunk_ndcgs = unpickle_or_compute(f"ndcg_{self._n}_chunk_{chunk_id}.pickle", lambda: self._compute_chunk(chunk))
+        print(f"Prepared {len(chunks)} chunks to compute nDCG")
+
+        ndcgs = {}
+        for chunk_id, chunk in enumerate(tqdm(chunks, desc=f"Computing nDCG in chunks of {chunk_size}")):
+            chunk_ndcgs = unpickle_or_compute(
+                f"ndcg_{self._n}_chunk_{chunk_id}.pickle",
+                lambda: self._compute_chunk(chunk)
+            )
             for retrieval_name, ndcg in chunk_ndcgs.items():
                 ndcgs[retrieval_name] = ndcgs.get(retrieval_name, 0) + ndcg
-            
+
         for retrieval_name in ndcgs:
-            ndcgs[retrieval_name] /= len(self._genres.get_song_ids_with_genre_info())
+            ndcgs[retrieval_name] /= len(self._genres.get_song_ids())
         
         return ndcgs
 
     def _compute_chunk(self, chunk):
-        start_time = time.time()
-        i = 0
         ndcgs = {}
         for song_id in chunk:
             idcg = self._get_idcg(song_id)
 
-            for retrieval_name, retrieval in retrievals.items():
-                retrieved = retrieval(self._n, song_id)
+            for retrieval_name, retrieval in RETRIEVAL_SYSTEMS.items():
+                retrieved = retrieval(self._ret, song_id)
                 retrieved = list(retrieved["id"])
+
                 dcg = self._get_dcg(song_id, retrieved)
-                ndcg = dcg / idcg
+
+                # Sanity check to prevent division by 0
+                ndcg = dcg / idcg if idcg != 0.0 else 0.0
                 ndcgs[retrieval_name] = ndcgs.get(retrieval_name, 0) + ndcg
 
-                print(f"NDCG for {retrieval_name} on {song_id}: {ndcg} (DCG: {dcg}, IDCG: {idcg})")
-
-            i += 1
-            current_time = time.time()
-            time_per_song = (current_time - start_time) / i
-            remaining = time_per_song * (len(chunk) - i)
-            print(f"Processed {i} songs, about {round(remaining / 60)} minutes remaining for chunk")
         return ndcgs
 
     def _get_idcg(self, song_id):
-        all_songs = self._genres.get_song_ids_with_genre_info().copy()
+        all_songs = self._genres.get_song_ids().copy()
         all_songs.sort(key=lambda song: self._get_relevance(song_id, song), reverse=True)
+
         retrieved_songs = all_songs[:self._n]
         return self._get_dcg(song_id, retrieved_songs)
 

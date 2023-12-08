@@ -1,7 +1,7 @@
 from typing import Tuple, Optional
 from dataclasses import dataclass
 
-from utils import read_tsv
+from datasets import datasets
 
 
 @dataclass
@@ -12,7 +12,7 @@ class Song:
 
 class SongTable:
     def __init__(self):
-        self.info = read_tsv("datasets/id_information_mmsr.tsv")
+        self.info = datasets.information.df
 
     def get_match(self, song: Song) -> Optional[Tuple[Song, int]]:
         matches = self.info[

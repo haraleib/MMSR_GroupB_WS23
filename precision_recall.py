@@ -1,81 +1,110 @@
-from song import songs
-from datasets import datasets
-import json
-from retrieval import Retrieval, SimilarityMeasure
 import matplotlib.pyplot as plt
+from tqdm.notebook import tqdm
+from dataclasses import dataclass
 
+from genres import Genres
+from datasets import datasets
 from utils import unpickle_or_compute
+from retrieval import Retrieval, SimilarityMeasure
 
-retrievals = {
-    "random_baseline": lambda n, query: Retrieval(n=n).random_baseline(query),
-    "text_tf_idf": lambda n, query: Retrieval(n=n).text_based_similarity(query, "tf_idf", SimilarityMeasure.COSINE),
-    "text_bert": lambda n, query: Retrieval(n=n).text_based_similarity(query, "bert", SimilarityMeasure.COSINE),
-    "text_word2vec": lambda n, query: Retrieval(n=n).text_based_similarity(query, "word2vec", SimilarityMeasure.COSINE),
-    "mfcc_bow": lambda n, query: Retrieval(n=n).retrieve_top_similar_tracks(query, "mfcc_bow"),
-    "blf_correlation": lambda n, query: Retrieval(n=n).retrieve_top_similar_tracks(query, "blf_correlation"),
-    "ivec256": lambda n, query: Retrieval(n=n).retrieve_top_similar_tracks(query, "ivec256"),
-    "musicnn": lambda n, query: Retrieval(n=n).retrieve_top_similar_tracks(query, "musicnn"),
+RETRIEVAL_SYSTEMS = {
+    "random_baseline": lambda retN, query: retN.random_baseline(query),
+    "text_tf_idf": lambda retN, query: retN.text_based_similarity(query, datasets.tf_idf, SimilarityMeasure.COSINE),
+    "text_bert": lambda retN, query: retN.text_based_similarity(query, datasets.lyrics_bert, SimilarityMeasure.COSINE),
+    "text_word2vec": lambda retN, query: retN.text_based_similarity(query, datasets.word2vec, SimilarityMeasure.COSINE),
+    "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
+    "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
+    "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
+    "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
 }
+
+
+@dataclass
+class RetrievalEvalResult:
+    n: int
+    name: str
+    precision_at_k: dict[int, float]
+    recall_at_k: dict[int, float]
+
 
 class PrecisionRecall:
     def __init__(self, genres):
-        self._genres = genres
+        self._n = 100
+        self._results: list[RetrievalEvalResult] = []
 
-    def plot(self):
+        self._genres = genres
+        self._ret = Retrieval(n=self._n)
+
+    def compute(self) -> None:
+        self._results = []
+
         # calculate average precision and recall @ k across all tracks for each retrieval method
         # plot precision and recall @ k for each retrieval method
-        data = []
-        for retrieval_name, retrieval in retrievals.items():
-            print(f"Calculating precision and recall for {retrieval_name}")
-            precision_at_k, recall_at_k = unpickle_or_compute(f"precision_recall_{retrieval_name}.pickle", lambda: self._calculate_precision_recall(retrieval))
-            print(precision_at_k)
-            print(recall_at_k)
-            data.append((retrieval_name, precision_at_k, recall_at_k))
+        for ret_sys_name, ret_sys in RETRIEVAL_SYSTEMS.items():
+            print(f"Calculating precision and recall for {ret_sys_name}")
 
-        self._draw_plot(data)
+            precision_at_k, recall_at_k = unpickle_or_compute(
+                f"precision_recall_{ret_sys_name}.pickle",
+                lambda: self._calculate_precision_recall(ret_sys, ret_sys_name)
+            )
 
-    def _draw_plot(self, data):
-        for (retrieval_name, precision_at_k, recall_at_k) in data:
+            self._results.append(RetrievalEvalResult(
+                n=self._n,
+                name=ret_sys_name,
+                precision_at_k=precision_at_k,
+                recall_at_k=recall_at_k
+            ))
+
+    def plot(self) -> None:
+        for res in self._results:
             x, y = [], []
-            for k in range(1, 101):
-                x.append(recall_at_k[k])
-                y.append(precision_at_k[k])
-            plt.plot(x, y, label=retrieval_name)
+            for k in range(1, res.n + 1):
+                x.append(res.recall_at_k[k])
+                y.append(res.precision_at_k[k])
+
+            plt.plot(x, y, label=res.name)
+
         plt.xlabel("Recall")
         plt.ylabel("Precision")
         plt.xlim(0, 0.02)
         plt.ylim(0, 1)
         plt.title("Precision-Recall Curve")
-        plt.legend() 
+        plt.legend()
         plt.show()
 
+    def _calculate_precision_recall(self, ret_sys, ret_sys_name) -> tuple[dict[int, float], dict[int, float]]:
+        precision_at_k: dict[int, float] = {}
+        recall_at_k: dict[int, float] = {}
 
-    def _calculate_precision_recall(self, retrieval):
-        precision_at_k = {}
-        recall_at_k = {}
-        i = 0
-        for song in self._genres.get_song_ids_with_genre_info():
-            retrieved_songs = retrieval(100, song)
+        for song_id in tqdm(
+                self._genres.get_song_ids(),
+                desc=f"Calculating precision recall: {ret_sys_name}"
+        ):
+            retrieved_songs = ret_sys(self._ret, song_id)
             retrieved_songs = list(retrieved_songs["id"])
 
-            nr_relevant_songs = self._genres.get_relevant_song_counts(song)
+            n_relevant_songs = self._genres.get_relevant_song_counts(song_id)
 
             relevant_until_k = 0
-            for k in range(1, 101):
-                if self._genres.song_is_relevant(song, retrieved_songs[k - 1]):
+            for k in range(1, self._n + 1):
+                if self._genres.is_related(song_id, retrieved_songs[k - 1]):
                     relevant_until_k += 1
                 
                 precision_at_k[k] = precision_at_k.get(k, 0) + relevant_until_k / k
-                recall_at_k[k] = recall_at_k.get(k, 0) + relevant_until_k / nr_relevant_songs
-            i += 1
-            if i % 100 == 0:
-                print(f"Processed {i} songs")
 
+                # Sanity check: Prevent division by 0
+                recall = recall_at_k.get(k, 0)
+                if n_relevant_songs:
+                    recall += relevant_until_k / n_relevant_songs
+
+                recall_at_k[k] = recall
+
+        n_songs = len(self._genres.get_song_ids())
 
         # calculate average precision and recall @ k across all tracks
-        for k in range(1, 101):
-            precision_at_k[k] /= len(self._genres.get_song_ids_with_genre_info())
-            recall_at_k[k] /= len(self._genres.get_song_ids_with_genre_info())
+        for k in range(1, self._n + 1):
+            precision_at_k[k] /= n_songs
+            recall_at_k[k] /= n_songs
         
         return precision_at_k, recall_at_k
         
