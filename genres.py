@@ -20,7 +20,7 @@ class Genres:
 
     def get_song_ids(self) -> list[int]:
         return self.song_ids
-    
+
     def get_relevant_song_counts(self, song_id) -> int:
         return self.relevant_song_counts.get(song_id, 0)
 

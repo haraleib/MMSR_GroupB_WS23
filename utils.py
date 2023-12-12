@@ -1,5 +1,7 @@
-import pandas as pd
+import os
 import pickle
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def read_tsv(file: str) -> pd.DataFrame:
@@ -21,6 +23,9 @@ def unpickle_file(path: str):
 
 # only executes the compute_function if the file does not exist, otherwise unpickles the file
 def unpickle_or_compute(path: str, compute_function):
+    # Create our pickled_state directory on-the-fly if it doesn't exist
+    os.makedirs("pickled_state", exist_ok=True)
+
     path = f"pickled_state/{path}"
 
     data = unpickle_file(path)
@@ -34,3 +39,63 @@ def unpickle_or_compute(path: str, compute_function):
         print(f"  --> Loading pickled data from {path}")
 
     return data
+
+
+def plot_ret_sys_dict(
+        ret_sys_dict: dict[str, float],
+        xlabel: str,
+        ylabel: str,
+        color: str
+) -> None:
+    # Extract retrieval system names and coverage values
+    sorted_dict = {k: v for k, v in sorted(ret_sys_dict.items(), key=lambda tup: tup[1], reverse=True)}
+
+    ret_sys_names = list(sorted_dict.keys())
+    coverage_values = list(sorted_dict.values())
+
+    # Create a bar plot
+    fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
+
+    # Remove top, right and left borders
+    ax.spines["top"].set(visible=False)
+    ax.spines["right"].set(visible=False)
+
+    # Add grid lines where the values end (horizontal lines)
+    ax.grid(visible=True, color="lightgrey", ls=":")
+
+    # Remove black ticks (we have a grid)
+    # ax.tick_params(bottom=False, left=False)
+
+    # Plot
+    ax.barh(
+        y=ret_sys_names,
+        width=coverage_values,
+        color=color,
+        ec="black",
+        lw=0.75,
+        zorder=3
+    )
+
+    # Add labels and title
+    ax.set_xlabel(xlabel, labelpad=8, fontsize=12, color="#111111")
+    ax.set_ylabel(ylabel, labelpad=8, fontsize=12, color="#111111")
+    ax.set_title(f"{xlabel} by {ylabel}", pad=12, fontsize=13, color="#000000", weight="bold")
+
+    # Display the values on the bars
+    for index, x in enumerate(coverage_values):
+        ax.annotate(
+            xy=(x, index),
+            text=f"{x:.3f}".rstrip("0").rstrip("."),
+            xytext=(-8, 0),
+            textcoords="offset points",
+            size=11,
+            color="white",
+            ha="right",
+            va="center",
+            weight="bold"
+        )
+
+    # Show the plot
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    plt.show()

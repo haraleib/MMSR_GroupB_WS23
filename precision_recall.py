@@ -3,20 +3,8 @@ from tqdm.notebook import tqdm
 from dataclasses import dataclass
 
 from genres import Genres
-from datasets import datasets
 from utils import unpickle_or_compute
-from retrieval import Retrieval, SimilarityMeasure
-
-RETRIEVAL_SYSTEMS = {
-    "random_baseline": lambda retN, query: retN.random_baseline(query),
-    "text_tf_idf": lambda retN, query: retN.text_based_similarity(query, datasets.tf_idf, SimilarityMeasure.COSINE),
-    "text_bert": lambda retN, query: retN.text_based_similarity(query, datasets.lyrics_bert, SimilarityMeasure.COSINE),
-    "text_word2vec": lambda retN, query: retN.text_based_similarity(query, datasets.word2vec, SimilarityMeasure.COSINE),
-    "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
-    "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
-    "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
-    "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
-}
+from retrieval import Retrieval, RETRIEVAL_SYSTEMS
 
 
 @dataclass
@@ -28,7 +16,7 @@ class RetrievalEvalResult:
 
 
 class PrecisionRecall:
-    def __init__(self, genres):
+    def __init__(self, genres: Genres):
         self._n = 100
         self._results: list[RetrievalEvalResult] = []
 
@@ -56,13 +44,28 @@ class PrecisionRecall:
             ))
 
     def plot(self) -> None:
-        for res in self._results:
+        _ = plt.figure(figsize=(14, 7), dpi=200)
+
+        distinct_colors = [
+            "tab:cyan", "tab:blue", "tab:green", "tab:red", "tab:purple", "tab:pink", "tab:orange", "black"
+        ]
+        for i, res in enumerate(self._results):
             x, y = [], []
             for k in range(1, res.n + 1):
                 x.append(res.recall_at_k[k])
                 y.append(res.precision_at_k[k])
 
-            plt.plot(x, y, label=res.name)
+            plt.plot(x, y, label=res.name, zorder=3, color=distinct_colors[i])
+
+        plt.grid(which="major", color="lightgrey", ls=":", lw=1)
+        plt.grid(which="minor", color="lightgrey", ls=":", lw=0.5, alpha=0.8)
+
+        plt.minorticks_on()
+
+        def format_func(value, tick_number):
+            return f"{value:.4f}".rstrip("0").rstrip(".")
+
+        plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
         plt.xlabel("Recall")
         plt.ylabel("Precision")
@@ -80,20 +83,20 @@ class PrecisionRecall:
                 self._genres.get_song_ids(),
                 desc=f"Calculating precision recall: {ret_sys_name}"
         ):
+            n_relevant_songs = self._genres.get_relevant_song_counts(song_id)
+
             retrieved_songs = ret_sys(self._ret, song_id)
             retrieved_songs = list(retrieved_songs["id"])
 
-            n_relevant_songs = self._genres.get_relevant_song_counts(song_id)
-
-            relevant_until_k = 0
+            relevant_until_k = 0.0
             for k in range(1, self._n + 1):
                 if self._genres.is_related(song_id, retrieved_songs[k - 1]):
-                    relevant_until_k += 1
+                    relevant_until_k += 1.0
                 
-                precision_at_k[k] = precision_at_k.get(k, 0) + relevant_until_k / k
+                precision_at_k[k] = precision_at_k.get(k, 0.0) + relevant_until_k / k
 
                 # Sanity check: Prevent division by 0
-                recall = recall_at_k.get(k, 0)
+                recall = recall_at_k.get(k, 0.0)
                 if n_relevant_songs:
                     recall += relevant_until_k / n_relevant_songs
 

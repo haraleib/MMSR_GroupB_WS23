@@ -4,7 +4,19 @@ from enum import IntEnum
 from sklearn.metrics.pairwise import cosine_similarity
 
 from song import songs
-from datasets import LocalDataset
+from datasets import datasets, LocalDataset
+
+
+RETRIEVAL_SYSTEMS = {
+    "random_baseline": lambda retN, query: retN.random_baseline(query),
+    "text_tf_idf": lambda retN, query: retN.text_based_similarity(query, datasets.tf_idf, SimilarityMeasure.COSINE),
+    "text_bert": lambda retN, query: retN.text_based_similarity(query, datasets.lyrics_bert, SimilarityMeasure.COSINE),
+    "text_word2vec": lambda retN, query: retN.text_based_similarity(query, datasets.word2vec, SimilarityMeasure.COSINE),
+    "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
+    "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
+    "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
+    "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
+}
 
 
 class SimilarityMeasure(IntEnum):
@@ -16,8 +28,6 @@ class Retrieval:
         self.n = n
 
     def random_baseline(self, song_id) -> pd.DataFrame:
-        np.random.seed(42)
-
         # Exclude the query song from the dataset (if it exists)
         # exclude_mask = (songs.info["song"] != song.title) | (songs.info["artist"] != song.artist)
         exclude_mask = (songs.info["id"] != song_id)

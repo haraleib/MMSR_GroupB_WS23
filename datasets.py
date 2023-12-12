@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 
 from utils import read_tsv
@@ -7,6 +8,12 @@ class LocalDataset:
     def __init__(self, name: str):
         self.name = name
 
+        if not os.path.isdir("datasets"):
+            raise RuntimeError(
+                "'datasets' directory not present. "
+                "Create it in the project root folder and place your dataset files there."
+            )
+
         self.df: pd.DataFrame = read_tsv(f"datasets/id_{name}_mmsr.tsv")
         self.df = self.df[self.df["id"] != "03Oc9WeMEmyLLQbj"]
 
@@ -15,6 +22,7 @@ class LocalDataset:
 
     def __str__(self):
         return self.name
+
 
 class Datasets:
     def __init__(self):

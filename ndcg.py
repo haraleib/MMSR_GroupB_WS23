@@ -1,10 +1,8 @@
-import time
 from math import log2
 from tqdm.notebook import tqdm
-from matplotlib import pyplot as plt
 
 from retrieval import Retrieval
-from utils import unpickle_or_compute
+from utils import unpickle_or_compute, plot_ret_sys_dict
 from precision_recall import RETRIEVAL_SYSTEMS
 
 
@@ -16,25 +14,14 @@ class Ndcg:
 
     def plot(self):
         ndcgs = self._compute()
+        plot_ret_sys_dict(
+            ndcgs,
+            xlabel="nDCG@10",
+            ylabel="Retrieval System",
+            color="xkcd:medium blue"
+        )
 
-        retrieval_names = []
-        ndcg_values = []
-        for retrieval_name, ndcg in ndcgs.items():
-            retrieval_names.append(retrieval_name)
-            ndcg_values.append(ndcg)
-
-        ndcg_values, retrieval_names = zip(*sorted(zip(ndcg_values, retrieval_names), reverse=False))
-
-        plt.bar(retrieval_names, ndcg_values)
-        plt.xlabel("Retrieval method")
-        plt.ylabel("nDCG")
-
-        # plt.xticks(rotation=45)
-        plt.xticks(rotation=30, ha='right')
-        plt.title(f"nDCG@{self._n}")
-        plt.show()
-
-    def _compute(self):
+    def _compute(self) -> dict[str, float]:
         chunk_size = 1000
         chunks = [
             self._genres.get_song_ids()[i:i + chunk_size]
@@ -43,7 +30,7 @@ class Ndcg:
 
         print(f"Prepared {len(chunks)} chunks to compute nDCG")
 
-        ndcgs = {}
+        ndcgs: dict[str, float] = {}
         for chunk_id, chunk in enumerate(tqdm(chunks, desc=f"Computing nDCG in chunks of {chunk_size}")):
             chunk_ndcgs = unpickle_or_compute(
                 f"ndcg_{self._n}_chunk_{chunk_id}.pickle",
@@ -54,7 +41,7 @@ class Ndcg:
 
         for retrieval_name in ndcgs:
             ndcgs[retrieval_name] /= len(self._genres.get_song_ids())
-        
+
         return ndcgs
 
     def _compute_chunk(self, chunk):
