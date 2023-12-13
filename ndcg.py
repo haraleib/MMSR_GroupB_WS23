@@ -11,17 +11,17 @@ class Ndcg:
         self._n = 10
         self._genres = genres
         self._ret = Retrieval(n=self._n)
+        self._ndcgs: dict[str, float] = {}
 
     def plot(self):
-        ndcgs = self._compute()
         plot_ret_sys_dict(
-            ndcgs,
+            self._ndcgs,
             xlabel="nDCG@10",
             ylabel="Retrieval System",
             color="xkcd:medium blue"
         )
 
-    def _compute(self) -> dict[str, float]:
+    def compute(self) -> None:
         chunk_size = 1000
         chunks = [
             self._genres.get_song_ids()[i:i + chunk_size]
@@ -30,19 +30,16 @@ class Ndcg:
 
         print(f"Prepared {len(chunks)} chunks to compute nDCG")
 
-        ndcgs: dict[str, float] = {}
         for chunk_id, chunk in enumerate(tqdm(chunks, desc=f"Computing nDCG in chunks of {chunk_size}")):
             chunk_ndcgs = unpickle_or_compute(
                 f"ndcg_{self._n}_chunk_{chunk_id}.pickle",
                 lambda: self._compute_chunk(chunk)
             )
             for retrieval_name, ndcg in chunk_ndcgs.items():
-                ndcgs[retrieval_name] = ndcgs.get(retrieval_name, 0) + ndcg
+                self._ndcgs[retrieval_name] = self._ndcgs.get(retrieval_name, 0) + ndcg
 
-        for retrieval_name in ndcgs:
-            ndcgs[retrieval_name] /= len(self._genres.get_song_ids())
-
-        return ndcgs
+        for retrieval_name in self._ndcgs:
+            self._ndcgs[retrieval_name] /= len(self._genres.get_song_ids())
 
     def _compute_chunk(self, chunk):
         ndcgs = {}

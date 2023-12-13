@@ -99,3 +99,32 @@ def plot_ret_sys_dict(
     plt.gca().invert_yaxis()
     plt.tight_layout()
     plt.show()
+
+
+def df_to_latex_table(df: pd.DataFrame) -> None:
+    lines: list[str] = []
+    columns = ["song", "artist", "similarity"]
+
+    print("  \\begin{tabular}{llr}")
+
+    # Print table header
+    print("    \\toprule")
+    # Capitalize columns
+    print("    " + " & ".join(["\\textbf{" + c.capitalize() + "}" for c in columns]) + " \\\\")
+    print("    \\midrule")
+
+    # Print table body rows
+    for index, row in df.iterrows():
+        values: list[str] = []
+        for col in columns:
+            if col in row:
+                if col == "similarity":
+                    values.append(f"{row[col]:.4f}".rstrip("0").rstrip("."))
+                else:
+                    values.append(str(row[col]).replace("&", "\\&"))
+
+        lines.append("    " + " & ".join(values))
+
+    print(" \\\\\n".join(lines) + " \\\\")
+    print("    \\bottomrule")
+    print("  \\end{tabular}")

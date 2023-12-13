@@ -10,22 +10,30 @@ from retrieval import Retrieval, RETRIEVAL_SYSTEMS
 @dataclass
 class RetrievalEvalResult:
     n: int
-    name: str
     precision_at_k: dict[int, float]
     recall_at_k: dict[int, float]
 
 
 class PrecisionRecall:
+    DISTINCT_COLORS = {
+        "random_baseline": "tab:cyan",
+        "text_tf_idf": "tab:blue",
+        "text_bert": "tab:green",
+        "text_word2vec": "tab:red",
+        "mfcc_bow": "tab:purple",
+        "blf_correlation": "tab:pink",
+        "ivec256": "tab:orange",
+        "musicnn": "black"
+    }
+
     def __init__(self, genres: Genres):
         self._n = 100
-        self._results: list[RetrievalEvalResult] = []
+        self._results: dict[str, RetrievalEvalResult] = {}
 
         self._genres = genres
         self._ret = Retrieval(n=self._n)
 
     def compute(self) -> None:
-        self._results = []
-
         # calculate average precision and recall @ k across all tracks for each retrieval method
         # plot precision and recall @ k for each retrieval method
         for ret_sys_name, ret_sys in RETRIEVAL_SYSTEMS.items():
@@ -36,43 +44,76 @@ class PrecisionRecall:
                 lambda: self._calculate_precision_recall(ret_sys, ret_sys_name)
             )
 
-            self._results.append(RetrievalEvalResult(
+            self._results[ret_sys_name] = RetrievalEvalResult(
                 n=self._n,
-                name=ret_sys_name,
                 precision_at_k=precision_at_k,
                 recall_at_k=recall_at_k
-            ))
+            )
 
-    def plot(self) -> None:
-        _ = plt.figure(figsize=(14, 7), dpi=200)
+    def plot_all_single(self) -> None:
+        fig, ax = plt.subplots(figsize=(14, 7), dpi=200)
 
-        distinct_colors = [
-            "tab:cyan", "tab:blue", "tab:green", "tab:red", "tab:purple", "tab:pink", "tab:orange", "black"
-        ]
-        for i, res in enumerate(self._results):
+        for name, results in self._results.items():
             x, y = [], []
-            for k in range(1, res.n + 1):
-                x.append(res.recall_at_k[k])
-                y.append(res.precision_at_k[k])
+            for k in range(1, results.n + 1):
+                x.append(results.recall_at_k[k])
+                y.append(results.precision_at_k[k])
 
-            plt.plot(x, y, label=res.name, zorder=3, color=distinct_colors[i])
+            ax.plot(x, y, label=name, zorder=3, color=self.DISTINCT_COLORS[name])
 
-        plt.grid(which="major", color="lightgrey", ls=":", lw=1)
-        plt.grid(which="minor", color="lightgrey", ls=":", lw=0.5, alpha=0.8)
+        ax.grid(which="major", color="lightgrey", ls=":", lw=1)
+        ax.grid(which="minor", color="lightgrey", ls=":", lw=0.5, alpha=0.8)
 
-        plt.minorticks_on()
+        ax.minorticks_on()
 
         def format_func(value, tick_number):
             return f"{value:.4f}".rstrip("0").rstrip(".")
 
-        plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.xlim(0, 0.02)
-        plt.ylim(0, 1)
-        plt.title("Precision-Recall Curve")
-        plt.legend()
+        ax.set_xlabel("Recall")
+        ax.set_ylabel("Precision")
+        ax.set_xlim(0, 0.02)
+        ax.set_ylim(0, 0.71)
+        ax.set_title(f"Precision-Recall Curves across all Retrieval Systems")
+
+        plt.legend(loc="best")
+        plt.show()
+
+    def plot_each(self) -> None:
+        fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 14), dpi=200)
+        axes = axes.flatten()
+
+        for i, (name, results) in enumerate(self._results.items()):
+            x, y = [], []
+            for k in range(1, results.n + 1):
+                x.append(results.recall_at_k[k])
+                y.append(results.precision_at_k[k])
+
+            ax = axes[i]
+            ax.plot(x, y, label=name, zorder=3, color=self.DISTINCT_COLORS[name])
+
+            ax.grid(which="major", color="lightgrey", ls=":", lw=1)
+            ax.grid(which="minor", color="lightgrey", ls=":", lw=0.5, alpha=0.8)
+
+            ax.minorticks_on()
+
+            def format_func(value, tick_number):
+                return f"{value:.4f}".rstrip("0").rstrip(".")
+
+            ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+            ax.set_xlim(0, 0.02)
+            ax.set_ylim(0, 0.71)
+            ax.set_title(f"{name}")
+
+        suptitle = fig.suptitle("Precision-Recall Curve for each Retrieval System", fontsize=16)
+        suptitle.set_y(0.995)
+
+        fig.supxlabel("Recall", fontsize=16)
+        fig.supylabel("Precision", fontsize=16)
+
+        plt.legend(loc="best")
+        plt.tight_layout()
         plt.show()
 
     def _calculate_precision_recall(self, ret_sys, ret_sys_name) -> tuple[dict[int, float], dict[int, float]]:
