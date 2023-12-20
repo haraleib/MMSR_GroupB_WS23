@@ -1,3 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
+import json
+import os
+import threading
+import time
 import numpy as np
 import pandas as pd
 from enum import IntEnum
@@ -9,13 +14,14 @@ from datasets import datasets, LocalDataset
 
 RETRIEVAL_SYSTEMS = {
     "random_baseline": lambda retN, query: retN.random_baseline(query),
-    "text_tf_idf": lambda retN, query: retN.text_based_similarity(query, datasets.tf_idf, SimilarityMeasure.COSINE),
-    "text_bert": lambda retN, query: retN.text_based_similarity(query, datasets.lyrics_bert, SimilarityMeasure.COSINE),
-    "text_word2vec": lambda retN, query: retN.text_based_similarity(query, datasets.word2vec, SimilarityMeasure.COSINE),
+    "text_tf_idf": lambda retN, query: retN.top_similar_tracks(query, datasets.tf_idf),
+    "text_bert": lambda retN, query: retN.top_similar_tracks(query, datasets.lyrics_bert),
+    "text_word2vec": lambda retN, query: retN.top_similar_tracks(query, datasets.word2vec),
     "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
     "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
     "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
     "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
+    "video_resnet": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet),
 }
 
 
@@ -24,8 +30,50 @@ class SimilarityMeasure(IntEnum):
 
 
 class Retrieval:
-    def __init__(self, n: int):
+    def __init__(self, n: int, use_cache: bool = True):
         self.n = n
+        self._cache = {}
+        self._cache_lock = threading.Lock()
+        if use_cache:
+            self.sync_cache_with_disk()
+
+    def sync_cache_with_disk(self):
+        cache_was_empty = len(self._cache) == 0
+        # this implementation sucks, but it works (kinda)
+        try:
+            with self._cache_lock:
+                if not os.path.exists("retrievals"):
+                    os.makedirs("retrievals")
+                for file in os.listdir("retrievals"):
+                    dataset_name = file.split(".")[0]
+                    with open(f"retrievals/{file}", "r") as f:
+                        old_cache = json.load(f)
+                    if dataset_name not in self._cache:
+                        self._cache[dataset_name] = {}
+                    self._cache[dataset_name].update(old_cache)
+                if not cache_was_empty:
+                    for dataset_name in self._cache:
+                        with open(f"retrievals/{dataset_name}.json", "w") as f:
+                            json.dump(self._cache[dataset_name], f)
+        except Exception as e:
+            print("Error syncing cache with disk:", e)
+
+    def precompute_all(self, threads: int = 4):
+        self.sync_cache_with_disk()
+        with ThreadPoolExecutor(max_workers=threads) as executor:
+            for retrieval in RETRIEVAL_SYSTEMS:
+                if retrieval != "random_baseline":
+                    executor.submit(self.precompute, retrieval)
+
+    def precompute(self, retrieval):
+        print(f"Precomputing {retrieval}")
+        for idx, song_id in enumerate(songs.info["id"]):
+            RETRIEVAL_SYSTEMS[retrieval](self, song_id)
+            if idx % 1000 == 0:
+                print(f"{idx}/{len(songs.info)} ({retrieval})")
+                self.sync_cache_with_disk()
+        print(f"Precomputed {retrieval}")
+        self.sync_cache_with_disk()
 
     def random_baseline(self, song_id) -> pd.DataFrame:
         # Exclude the query song from the dataset (if it exists)
@@ -35,54 +83,23 @@ class Retrieval:
         # Select N random songs from the filtered data
         random_results = songs.info[exclude_mask].sample(n=self.n)
 
-        return random_results[["id", "song", "artist"]]
+        return [[id, 1] for id in random_results["id"].values]
 
-    def text_based_similarity(
-            self,
-            song_id: int,
-            dataset: LocalDataset,
-            similarity_measure: SimilarityMeasure
-    ) -> pd.DataFrame:
-        representations = dataset.df
-
-        # representation of the query song
-        query_repr = representations[(representations["id"] == song_id)]
-        query_repr = query_repr.loc[:, query_repr.columns != "id"]
-
-        # representation of all songs
-        all_songs_repr = representations.loc[:, representations.columns != "id"]
-
-        # Measure similarity between all (other) songs and the queried song
-        if similarity_measure == SimilarityMeasure.COSINE:
-            similarity = cosine_similarity(X=all_songs_repr, Y=query_repr)
-        else:
-            raise ValueError(f"bad similarity measure supplied: {similarity_measure}")
-
-        # Create a new dataframe with original representations
-        # but also append a similarity column
-        repr_with_similarity = representations.copy()
-        repr_with_similarity.insert(1, "similarity", similarity)
-
-        # sort by similarity and select top N results (excluding the query, which should be at index 0)
-        repr_with_similarity = repr_with_similarity.sort_values(
-            by="similarity",
-            ascending=False
-        ).iloc[1:self.n + 1]
-
-        filtered = songs.info.loc[songs.info["id"].isin(repr_with_similarity["id"])]
-
-        # sort the filtered dataframe by the order of the repr_with_similarity dataframe
-        # include the similarity column in the sort so that the filtered dataframe is sorted by similarity
-        filtered = filtered.merge(
-            repr_with_similarity,
-            on="id",
-            suffixes=("", "_")
-        ).sort_values("similarity", ascending=False)
-
-        return filtered[["id", "similarity", "song", "artist"]]
+    def top_similar_tracks(self, query_track_id, dataset: LocalDataset):
+        result = None
+        with self._cache_lock:
+            if dataset.name not in self._cache:
+                self._cache[dataset.name] = {}
+            if query_track_id in self._cache[dataset.name]:
+                return self._cache[dataset.name][query_track_id][:self.n]
+        result = self._top_similar_tracks(query_track_id, dataset)
+        with self._cache_lock:
+            self._cache[dataset.name][query_track_id] = result
+        return result
 
     # Function to retrieve top N similar tracks
-    def top_similar_tracks(self, query_track_id, dataset: LocalDataset):
+    def _top_similar_tracks(self, query_track_id, dataset: LocalDataset):
+        start_time = time.time()
         features_data = dataset.df
         if query_track_id not in features_data['id'].values:
             # print(f"Track ID {query_track_id} not found in the data.")
@@ -102,27 +119,29 @@ class Retrieval:
 
         # Populate the list with song and artist information
         for track_index in top_indices:
-            track_id = features_data.loc[track_index, 'id']
+            track_id = features_data.iat[track_index, features_data.columns.get_loc('id')]
+            similarity = similarity_matrix[0][track_index]
+            result_rows.append([track_id, similarity])
 
+        return result_rows
+
+    @staticmethod
+    def create_df_from_tracks(tracks):
+        result_rows = []
+        for [track_id, similarity] in tracks:
             info_row = songs.info[songs.info['id'] == track_id]
             if not info_row.empty:
                 artist = info_row['artist'].values[0]
                 song = info_row['song'].values[0]
-
+                album_name = info_row['album_name'].values[0]
                 result_rows.append({
                     'id': track_id,
-                    'similarity': similarity_matrix[0][track_index],
+                    'similarity': similarity,
                     'song': song,
                     'artist': artist,
+                    'album_name': album_name,
                 })
-                
-        # Create the DataFrame from the list of dictionaries
         result_df = pd.DataFrame(result_rows)
-
         # Sort the DataFrame based on "Similarity" column
         result_df = result_df.sort_values(by='similarity', ascending=False)
-
-        # Display sorted results
-        # print(f"\nTop {self.n} Similar Tracks:")
-        # print(result_df)
         return result_df

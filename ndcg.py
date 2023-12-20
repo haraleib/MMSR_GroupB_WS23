@@ -48,7 +48,7 @@ class Ndcg:
 
             for retrieval_name, retrieval in RETRIEVAL_SYSTEMS.items():
                 retrieved = retrieval(self._ret, song_id)
-                retrieved = list(retrieved["id"])
+                retrieved = [song_id for song_id, _ in retrieved]
 
                 dcg = self._get_dcg(song_id, retrieved)
 

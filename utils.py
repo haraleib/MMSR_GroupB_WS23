@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 import pandas as pd
@@ -128,3 +129,13 @@ def df_to_latex_table(df: pd.DataFrame) -> None:
     print(" \\\\\n".join(lines) + " \\\\")
     print("    \\bottomrule")
     print("  \\end{tabular}")
+
+def write_song_df_to_json_file(path: str, id_information: pd.DataFrame, id_url: pd.DataFrame, id_genres: pd.DataFrame) -> None:
+    songs = []
+    for index, row in id_information.iterrows():
+        ytId = id_url.loc[id_url['id'] == row['id']]['url'].values[0].split('=')[1]
+        genres = id_genres.loc[id_genres['id'] == row['id']]['genre'].values[0]
+        genres = json.loads(genres.replace("'", "\""))
+        songs.append({'id': row['id'], 'artist': row['artist'], 'song': row['song'], 'ytId': ytId, 'genres': genres})
+    with open(path, 'w') as outfile:
+        json.dump(songs, outfile)

@@ -43,6 +43,10 @@ class Datasets:
         self.lyrics_bert = LocalDataset("lyrics_bert")
         self.tf_idf = LocalDataset("lyrics_tf-idf")
         self.word2vec = LocalDataset("lyrics_word2vec")
+        self.url = LocalDataset("url")
+        self.incp = LocalDataset("incp")
+        self.resnet = LocalDataset("resnet")
+        self.vgg = LocalDataset("vgg19")
 
 
 datasets = Datasets()

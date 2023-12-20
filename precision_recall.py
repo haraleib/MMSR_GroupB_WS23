@@ -23,7 +23,10 @@ class PrecisionRecall:
         "mfcc_bow": "tab:purple",
         "blf_correlation": "tab:pink",
         "ivec256": "tab:orange",
-        "musicnn": "black"
+        "musicnn": "black",
+        "video_resnet": "tab:brown",
+        # "late_fusion": "tab:olive",
+        # "early_fusion": "tab:gray",
     }
 
     def __init__(self, genres: Genres):
@@ -81,7 +84,7 @@ class PrecisionRecall:
         plt.show()
 
     def plot_each(self) -> None:
-        fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 14), dpi=200)
+        fig, axes = plt.subplots(nrows=5, ncols=2, figsize=(12, 14), dpi=200)
         axes = axes.flatten()
 
         for i, (name, results) in enumerate(self._results.items()):
@@ -127,7 +130,7 @@ class PrecisionRecall:
             n_relevant_songs = self._genres.get_relevant_song_counts(song_id)
 
             retrieved_songs = ret_sys(self._ret, song_id)
-            retrieved_songs = list(retrieved_songs["id"])
+            retrieved_songs = [song_id for song_id, _ in retrieved_songs]
 
             relevant_until_k = 0.0
             for k in range(1, self._n + 1):

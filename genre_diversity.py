@@ -30,7 +30,7 @@ class GenreDiversity:
 
         for song_id in tqdm(self.genres.get_song_ids(), desc=f"Iterating songs for '{ret_sys_name}'", leave=False):
             top_10_songs = ret_sys(self.retrieval, song_id)
-            top_10_songs = list(top_10_songs["id"])
+            top_10_songs = [song_id for song_id, _ in top_10_songs]
 
             # Iterate through the top 10 tracks and compute their respective genre distribution
             distribution = np.zeros(shape=(n_total_genres,))
