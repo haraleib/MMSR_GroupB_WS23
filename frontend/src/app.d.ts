@@ -8,6 +8,14 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+	interface Song {
+    id: string;
+    artist: string;
+    song: string;
+    ytId: string;
+    genres: string[];
+    score?: number;
+	}
 }
 
 export {};

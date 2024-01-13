@@ -1,7 +1,7 @@
 export const prerender = true;
 
 // fetch songs from the API
-export async function load({ page, fetch }) {
+export async function load({ fetch }) {
   const res = await fetch("/songMeta.json");
   const songs = await res.json();
 

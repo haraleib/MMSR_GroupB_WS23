@@ -1,34 +1,30 @@
 <script lang="ts">
-    import SongList from "./SongList.svelte";
-    import type { Song } from "./song";
+  import SongList from "./SongList.svelte";
 
-    export let songs: Song[] = [];
-    export let query: string = "";
+  export let songs: Song[];
+  export let query: string;
 
-    let filteredSongs: Song[] = [];
+  // TODO: Add fuzzy search?
+  let filteredSongs: Song[] = [];
 
-    function filterSongs(songs: Song[], query: string) {
-        if (query.trim() === "") {
-            filteredSongs = songs;
-        } else {
-            console.log("filtering");
-            const lowercaseQuery = query.toLowerCase();
-            filteredSongs = songs.filter((song) => {
-                const lowercaseTitle = song.song.toLowerCase();
-                const lowercaseArtist = song.artist.toLowerCase();
-                const lowercaseAlbum = song.genres.join(" ").toLowerCase();
-                return (
-                    lowercaseTitle.includes(lowercaseQuery) ||
-                    lowercaseArtist.includes(lowercaseQuery) ||
-                    lowercaseAlbum.includes(lowercaseQuery)
-                );
-            });
-        }
+  $: {
+    const searchText = query.trim().toLowerCase();
+
+    if (!searchText.length) {
+      filteredSongs = songs;
+    } else {
+      filteredSongs = songs.filter((s) => {
+        const title = s.song.toLowerCase();
+        const artist = s.artist.toLowerCase();
+        const album = s.genres.join(" ").toLowerCase();
+        return (
+          title.includes(searchText) ||
+          artist.includes(searchText) ||
+          album.includes(searchText)
+        );
+      });
     }
-
-    $: filterSongs(songs, query);
+  }
 </script>
 
-<div>
-    <SongList songs={filteredSongs} />
-</div>
+<SongList songs={filteredSongs} />
