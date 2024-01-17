@@ -1,22 +1,22 @@
 import path from "node:path";
-import { promises as fsPromises } from "node:fs";
+import * as fs from "node:fs";
 
 interface Retrieval {
   [key: string]: [string, number][];
 }
 
 const getPath = (...filename: string[]) =>
-  path.join(process.cwd(), "db", ...filename);
+  path.join(process.cwd(), ".svelte-kit", "output", "client", ...filename);
 
 const getRetrievals = async () => {
   const dirPath = getPath("retrievals");
-  const files = await fsPromises.readdir(dirPath);
+  const files = await fs.promises.readdir(dirPath);
 
   const map: Record<string, Retrieval> = {};
   try {
     for (const file of files) {
       const filePath = path.join(dirPath, file);
-      const content = await fsPromises.readFile(filePath, "utf-8");
+      const content = await fs.promises.readFile(filePath, "utf-8");
       map[file] = JSON.parse(content);
     }
   } catch (e) {
@@ -27,7 +27,7 @@ const getRetrievals = async () => {
 
 const getMetadata = async () => {
   const path = getPath("songMeta.json");
-  const content = await fsPromises.readFile(path, "utf-8");
+  const content = await fs.promises.readFile(path, "utf-8");
   return JSON.parse(content) as Song[];
 };
 

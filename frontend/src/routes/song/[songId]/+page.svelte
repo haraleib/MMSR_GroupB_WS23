@@ -4,96 +4,54 @@
 
   export let data: PageData;
 
-  import { createSelect } from "@melt-ui/svelte";
-  import { Check, ChevronDown } from "lucide-svelte";
-  import { fade } from "svelte/transition";
-
-  // TODO: Map these nice labels to IDs. Also, assign a default value.
-  // -- can this be done while instantiating the select element in createSelect? --
-  const options = {
-    Audio: ["MusiCNN", "MFCCs-BoAW", "i-vectors", "Correlation Pattern BLFs"],
-    Text: ["BERT", "TF-IDF", "word2vec"],
-    Random: ["Baseline"],
+  const options: Record<string, string> = {
+    "random": "Random Baseline",
+    "blf_correlation.json": "(Audio) Correlation Pattern BLFs",
+    "ivec256.json": "(Audio) i-vectors",
+    "musicnn.json": "(Audio) MusiCNN",
+    "mfcc_bow.json": "(Audio) MFCCs-BoAW",
+    "lyrics_bert.json": "(Text) BERT",
+    "lyrics_tf-idf.json": "(Text) TF-IDF",
+    "lyrics_word2vec.json": "(Text) word2vec",
+    "incp.json": "(Video) Inception3",
+    "resnet.json": "(Video) ResNet",
+    "vgg19.json": "(Video) VGG-19",
   };
 
-  const {
-    elements: { trigger, menu, option, group, groupLabel, label },
-    states: { selectedLabel, open },
-    helpers: { isSelected },
-  } = createSelect<string>({
-    forceVisible: true,
-    positioning: {
-      placement: "bottom",
-      fitViewport: true,
-    },
-  });
-
   let selectedResultType = "random";
-  const embeddingTypes = Object.keys(data.results);
+  $: embeddingTypes = Object.keys(data.results).sort((a, b) => {
+    const first = Object.keys(options).findIndex((v) => v === a);
+    const second = Object.keys(options).findIndex((v) => v === b);
+    return first < second ? -1 : 1;
+  });
 </script>
 
-<div class="flex flex-row w-full flex-wrap gap-y-4">
-  <div class="flex flex-col flex-grow">
-    <h1 class="text-5xl font-black text-gray-900 tracking-tighter">
-      {data.song.song}
-    </h1>
-    <p class="text-3xl font-bold text-gray-700">{data.song.artist}</p>
-
-    <div class="mt-4">
-      <!-- svelte-ignore a11y-label-has-associated-control - $label contains the 'for' attribute -->
-      <label class="block text-gray-900" {...$label} use:label>Select embedding:</label>
-
-      <button
-        class="flex h-10 min-w-[220px] items-center justify-between rounded-lg bg-white px-3 py-2
-  text-gray-700 shadow transition-opacity hover:opacity-90"
-        {...$trigger}
-        use:trigger
-        aria-label="Food"
-      >
-        {$selectedLabel || "Select a flavor"}
-        <ChevronDown class="square-5" />
-      </button>
-
-      {#if $open}
-        <div
-          class="z-10 flex max-h-[300px] flex-col
-    overflow-y-auto rounded-lg bg-white p-1
-    shadow focus:!ring-0"
-          {...$menu}
-          use:menu
-          transition:fade={{ duration: 150 }}
-        >
-          {#each Object.entries(options) as [key, arr]}
-            <div {...$group(key)} use:group>
-              <div
-                class="py-1 pl-4 pr-4 font-semibold capitalize text-neutral-800"
-                {...$groupLabel(key)}
-                use:groupLabel
-              >
-                {key}
-              </div>
-              {#each arr as item}
-                <div
-                  class="relative cursor-pointer rounded-lg py-1 pl-8 pr-4 text-neutral-800
-              hover:bg-magnum-100 focus:z-10
-              focus:text-magnum-700
-              data-[highlighted]:bg-magnum-200 data-[highlighted]:text-magnum-900
-              data-[disabled]:opacity-50"
-                  {...$option({ value: item, label: item })}
-                  use:option
-                >
-                  <div class="check {$isSelected(item) ? 'inline' : 'hidden'}">
-                    <Check class="square-4" />
-                  </div>
-
-                  {item}
-                </div>
-              {/each}
-            </div>
-          {/each}
-        </div>
-      {/if}
+<div class="flex flex-row w-full flex-wrap gap-x-4 gap-y-4">
+  <div class="flex flex-col flex-grow gap-y-8">
+    <div>
+      <h1 class="text-4xl uhd:text-5xl font-black text-gray-900 tracking-tighter">
+        {data.song.song}
+      </h1>
+      <p class="text-3xl font-bold text-gray-700 tracking-wide">{data.song.artist}</p>
     </div>
+
+    <!--
+    <div class="flex flex-col bg-white rounded-lg border border-gray-300">
+      <div class="flex bg-gray-100 rounded-t-lg">
+        <div class="w-1/4 p-2">System</div>
+        <div class="w-1/4 p-2">Header 2</div>
+        <div class="w-1/4 p-2">Header 3</div>
+        <div class="w-1/4 p-2">Header 4</div>
+      </div>
+     
+      <div class="flex">
+        <div class="w-1/4 p-2">Data 1</div>
+        <div class="w-1/4 p-2">Data 2</div>
+        <div class="w-1/4 p-2">Data 3</div>
+        <div class="w-1/4 p-2">Data 4</div>
+      </div>
+    </div>
+    -->
   </div>
   <iframe
     title="Youtube Embed Video for song [{data.song.song}] by [{data.song
@@ -106,22 +64,23 @@
   />
 </div>
 
-<h2 class="text-3xl font-bold text-gray-800 tracking-tight mt-6 mb-2">
-  Related
-</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="flex flex-row items-center gap-x-3 mt-6 mb-4">
+  <h2 class="text-3xl font-bold text-gray-800 tracking-tight">Related</h2>
+  <div>
+    <select
+      bind:value={selectedResultType}
+      class="min-w-32 rounded-lg cursor-pointer bg-white px-3 py-1.5
+    text-gray-700 shadow transition-all hover:shadow-lg"
+    >
+      {#each embeddingTypes as resultType}
+        <option value={resultType}>{options[resultType]}</option>
+      {/each}
+    </select>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 uhd:grid-cols-4 gap-6">
   {#each data.results[selectedResultType] as song}
     <SongCard vertical={true} imageClassName="max-h-96" {song} />
   {/each}
 </div>
-
-<style lang="postcss">
-  .check {
-    position: absolute;
-    left: theme(spacing.2);
-    top: 50%;
-    z-index: theme(zIndex.20);
-    translate: 0 calc(-50% + 1px);
-    color: theme(colors.black);
-  }
-</style>

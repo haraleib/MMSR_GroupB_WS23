@@ -11,14 +11,14 @@
 </script>
 
 <div class="flex flex-row h-full pt-8 pb-16 px-8">
-  <div class="relative w-full max-w-3xl px-6 text-gray-600">
-      <input
-        type="search"
-        name="search"
-        placeholder="Search"
-        class="w-full shadow outline-none focus:ring focus:ring-magnum-400 focus:border-magnum-400"
-        bind:value={query}
-      />
+  <div class="relative w-full max-w-2xl uhd:max-w-3xl px-6 text-gray-600">
+    <input
+      type="search"
+      name="search"
+      placeholder="Search"
+      class="w-full shadow outline-none transition-all duration-300 hover:scale-[101%] hover:ring hover:ring-magnum-200 focus:ring focus:ring-magnum-400 focus:border-magnum-400"
+      bind:value={query}
+    />
 
     <FilteredSongList songs={data.props.songs} {query} />
   </div>

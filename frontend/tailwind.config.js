@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      screens: {
+        'uhd': '2048px'
+      },
       colors: {
         magnum: {
           '50': '#fff9ed',

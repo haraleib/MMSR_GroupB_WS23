@@ -7,17 +7,17 @@
 
     let currentPage = 1;
     let pageSize = 24;
-
-    // TODO: bug when searching like this
-    // - first enter 'Gabriel'
-    // - then add at the beginning 'Peter '
-    // - no results, compared to when searching normally for 'Peter Gabriel'
-    // related to currentPage?
-    $: visibleSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    let visibleSongs: Song[] = []
 
     // Prevent currentPage from being greater than the last page
-    $: if (currentPage > Math.ceil(songs.length / pageSize)) {
+    $: {
+      if (currentPage > Math.ceil(songs.length / pageSize)) {
         currentPage = Math.ceil(songs.length / pageSize);
+      }
+      if (currentPage < 1) {
+        currentPage = 1;
+      }
+      visibleSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
     }
 </script>
 
@@ -30,4 +30,7 @@
             <SongCard {song} {imageClassName} />
         {/each}
     </div>
+    {#key songs.length}
+        <Pagination itemCount={songs.length} bind:currentPage {pageSize} />
+    {/key}
 </div>

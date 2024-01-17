@@ -1,4 +1,4 @@
-export const prerender = true;
+// import { metadata } from "$lib/server/songs";
 
 // fetch songs from the API
 export async function load({ fetch }) {

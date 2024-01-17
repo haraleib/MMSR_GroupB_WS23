@@ -1,5 +1,5 @@
 import {preprocessMeltUI, sequence} from "@melt-ui/pp";
-import adapter from '@sveltejs/adapter-node';
+import adapter from '@sveltejs/adapter-auto';
 import {vitePreprocess} from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config}*/
@@ -8,10 +8,7 @@ const config = {
   // for more information about preprocessors
   preprocess: sequence([vitePreprocess(), preprocessMeltUI()]),
   kit: {
-    adapter: adapter(),
-    prerender: {
-      concurrency: 4
-    }
+    adapter: adapter()
   }
 };
 export default config;

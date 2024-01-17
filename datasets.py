@@ -1,20 +1,25 @@
 import os
 import pandas as pd
+from typing import Optional
 
 from utils import read_tsv
 
 
 class LocalDataset:
-    def __init__(self, name: str):
+    def __init__(self, name: str, df: Optional[pd.DataFrame] = None):
         self.name = name
 
-        if not os.path.isdir("datasets"):
-            raise RuntimeError(
-                "'datasets' directory not present. "
-                "Create it in the project root folder and place your dataset files there."
-            )
+        if df is not None:
+            self.df = df
+        else:
+            if not os.path.isdir("datasets"):
+                raise RuntimeError(
+                    "'datasets' directory not present. "
+                    "Create it in the project root folder and place your dataset files there."
+                )
 
-        self.df: pd.DataFrame = read_tsv(f"datasets/id_{name}_mmsr.tsv")
+            self.df: pd.DataFrame = read_tsv(f"datasets/id_{name}_mmsr.tsv")
+
         self.df = self.df[self.df["id"] != "03Oc9WeMEmyLLQbj"]
 
         if self.df.empty:
@@ -47,6 +52,8 @@ class Datasets:
         self.incp = LocalDataset("incp")
         self.resnet = LocalDataset("resnet")
         self.vgg = LocalDataset("vgg19")
+        self.musicnn = LocalDataset("musicnn")
+        self.resnet = LocalDataset("resnet")
 
 
 datasets = Datasets()
