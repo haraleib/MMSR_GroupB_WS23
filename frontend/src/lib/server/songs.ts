@@ -6,7 +6,7 @@ interface Retrieval {
 }
 
 const getPath = (...filename: string[]) =>
-  path.join(process.cwd(), ".svelte-kit", "output", "client", ...filename);
+  path.join(process.cwd(), "db", ...filename);
 
 const getRetrievals = async () => {
   const dirPath = getPath("retrievals");
