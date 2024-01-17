@@ -42,7 +42,7 @@
       >
         <Informative className="w-4 h-4 fill-gray-700 group-hover:fill-gray-900 transition-all duration-100" />
         <span class="underline underline-offset-1 decoration-gray-300 group-hover:text-gray-900 group-hover:decoration-gray-900 transition-all duration-100">
-          Find out how the User Interface functions.
+          Find out how the User Interface works.
         </span>
       </p>
     </div>
