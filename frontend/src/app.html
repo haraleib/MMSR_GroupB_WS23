@@ -3,17 +3,22 @@
 
 <head>
   <meta charset="utf-8" />
-  <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+  <link rel="icon" href="%sveltekit.assets%/favicon.ico" sizes="32x32">
+  <link rel="icon" href="%sveltekit.assets%/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png">
+  <link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest">
+
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   %sveltekit.head%
 </head>
 
-<body data-sveltekit-preload-data="hover" class="bg-white dark:bg-slate-950 text-black dark:text-slate-300">
+<body data-sveltekit-preload-data="hover" class="bg-[#fcfcfc] text-black">
   <div id="c1">
     <div id="c2"></div>
     <div id="c3"></div>
     <div id="c4"></div>
   </div>
+
   <div style="display: contents">%sveltekit.body%</div>
 </body>
 

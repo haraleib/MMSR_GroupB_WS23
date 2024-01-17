@@ -1,36 +1,49 @@
 <script lang="ts">
-    import Pagination from "./Pagination.svelte";
-    import SongCard from "./SongCard.svelte";
+  import Pagination from "./Pagination.svelte";
+  import SongCard from "./SongCard.svelte";
 
-    export let imageClassName = "max-h-24";
-    export let songs: Song[] = [];
+  import CatShocked from "./icons/cat-shocked.svelte";
 
-    let currentPage = 1;
-    let pageSize = 24;
-    let visibleSongs: Song[] = []
+  export let imageClassName = "max-h-24";
+  export let songs: Song[] = [];
 
-    // Prevent currentPage from being greater than the last page
-    $: {
-      if (currentPage > Math.ceil(songs.length / pageSize)) {
-        currentPage = Math.ceil(songs.length / pageSize);
-      }
-      if (currentPage < 1) {
-        currentPage = 1;
-      }
-      visibleSongs = songs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  let currentPage = 1;
+  let pageSize = 24;
+  let visibleSongs: Song[] = [];
+
+  // Prevent currentPage from being greater than the last page
+  $: {
+    if (currentPage > Math.ceil(songs.length / pageSize)) {
+      currentPage = Math.ceil(songs.length / pageSize);
     }
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+    visibleSongs = songs.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize
+    );
+  }
 </script>
 
 <div class="mx-auto">
+  {#if songs.length > 0}
     {#key songs.length}
-        <Pagination itemCount={songs.length} bind:currentPage {pageSize} />
+      <Pagination itemCount={songs.length} bind:currentPage {pageSize} />
     {/key}
     <div class="flex flex-col gap-y-2">
-        {#each visibleSongs as song}
-            <SongCard {song} {imageClassName} />
-        {/each}
+      {#each visibleSongs as song}
+        <SongCard {song} {imageClassName} />
+      {/each}
     </div>
+
     {#key songs.length}
-        <Pagination itemCount={songs.length} bind:currentPage {pageSize} />
+      <Pagination itemCount={songs.length} bind:currentPage {pageSize} />
     {/key}
+  {:else}
+    <h1 class="text-3xl font-bold text-black text-center mt-12">
+      <CatShocked className="mx-auto w-24 h-24" />
+      No songs/artists/genres match your criteria!
+    </h1>
+  {/if}
 </div>

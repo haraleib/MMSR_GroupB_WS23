@@ -2,6 +2,7 @@
     import { cx } from "$lib";
 
     export let label: string;
+    export let className: string = "";
 
     const colorMap: Record<string, string> = {
       "hip hop": "bg-blue-700 text-blue-50",
@@ -16,7 +17,8 @@
 <span
   class={cx(
     "text-sm font-medium px-2.5 py-0.5 rounded-full",
-    label in colorMap ? colorMap[label] : "bg-gray-200 text-gray-800"
+    label in colorMap ? colorMap[label] : "bg-gray-200 text-gray-800",
+    className
   )}
 >
   {label}

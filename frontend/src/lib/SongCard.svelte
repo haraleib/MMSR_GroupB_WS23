@@ -33,7 +33,9 @@
     <div>
       {#if song.score}
         <p class="text-base tracking-3 text-gray-500 mb-0.5">
-          Similarity: <span class="font-bold text-gray-900">{Math.round(song.score * 100)}%</span>
+          Similarity: <span class="font-bold text-gray-900" title="{(song.score * 100).toString()}%">
+            {Math.round(song.score * 100)}%
+          </span>
         </p>
       {/if}
       <TagContainer genres={song.genres} />

@@ -4,7 +4,7 @@
     export let genres: string[];
 
     const popularGenres = [
-      "rock", "hip hop", "rap", "pop", "techno", "jazz"
+      "rock", "hip hop", "rap", "pop", "folk", "jazz"
     ];
 
     function filterGenres() {
