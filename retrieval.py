@@ -13,15 +13,16 @@ from datasets import datasets, LocalDataset
 
 
 RETRIEVAL_SYSTEMS = {
-    "random_baseline": lambda retN, query: retN.random_baseline(query),
-    "text_tf_idf": lambda retN, query: retN.top_similar_tracks(query, datasets.tf_idf),
-    "text_bert": lambda retN, query: retN.top_similar_tracks(query, datasets.lyrics_bert),
-    "text_word2vec": lambda retN, query: retN.top_similar_tracks(query, datasets.word2vec),
-    "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
-    "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
-    "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
-    "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
-    "video_resnet": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet),
+    # "random_baseline": lambda retN, query: retN.random_baseline(query),
+    # "text_tf_idf": lambda retN, query: retN.top_similar_tracks(query, datasets.tf_idf),
+    # "text_bert": lambda retN, query: retN.top_similar_tracks(query, datasets.lyrics_bert),
+    # "text_word2vec": lambda retN, query: retN.top_similar_tracks(query, datasets.word2vec),
+    # "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
+    # "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
+    # "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
+    # "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
+    # "video_resnet": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet),
+    "early_fusion": lambda retN, query: retN.top_similar_tracks(query, datasets.early_fusion),
 }
 
 
@@ -40,23 +41,27 @@ class Retrieval:
     def sync_cache_with_disk(self):
         cache_was_empty = len(self._cache) == 0
         # this implementation sucks, but it works (kinda)
-        try:
-            with self._cache_lock:
-                if not os.path.exists("retrievals"):
-                    os.makedirs("retrievals")
-                for file in os.listdir("retrievals"):
-                    dataset_name = file.split(".")[0]
-                    with open(f"retrievals/{file}", "r") as f:
-                        old_cache = json.load(f)
-                    if dataset_name not in self._cache:
-                        self._cache[dataset_name] = {}
+        with self._cache_lock:
+            if not os.path.exists("retrievals"):
+                os.makedirs("retrievals")
+            for file in os.listdir("retrievals"):
+                dataset_name = file.split(".")[0]
+                with open(f"retrievals/{file}", "r") as f:
+                    old_cache = json.load(f)
+                if dataset_name not in self._cache:
+                    self._cache[dataset_name] = {}
+                if old_cache:
+                    # try:
                     self._cache[dataset_name].update(old_cache)
-                if not cache_was_empty:
-                    for dataset_name in self._cache:
-                        with open(f"retrievals/{dataset_name}.json", "w") as f:
-                            json.dump(self._cache[dataset_name], f)
-        except Exception as e:
-            print("Error syncing cache with disk:", e)
+                    # except:
+                    #     print(f"Failed to update cache for {dataset_name}")
+                    #     # print(f"Old cache: {old_cache}")
+                    #     print(f"New cache: {self._cache[dataset_name]}")
+                    #     exit()
+            if not cache_was_empty:
+                for dataset_name in self._cache:
+                    with open(f"retrievals/{dataset_name}.json", "w") as f:
+                        json.dump(self._cache[dataset_name], f)
 
     def precompute_all(self, threads: int = 4):
         self.sync_cache_with_disk()
@@ -68,6 +73,7 @@ class Retrieval:
     def precompute(self, retrieval):
         print(f"Precomputing {retrieval}")
         for idx, song_id in enumerate(songs.info["id"]):
+            print("testing")
             RETRIEVAL_SYSTEMS[retrieval](self, song_id)
             if idx % 1000 == 0:
                 print(f"{idx}/{len(songs.info)} ({retrieval})")
@@ -92,7 +98,9 @@ class Retrieval:
                 self._cache[dataset.name] = {}
             if query_track_id in self._cache[dataset.name]:
                 return self._cache[dataset.name][query_track_id][:self.n]
+        print("test 1")
         result = self._top_similar_tracks(query_track_id, dataset)
+        print("test 2")
         with self._cache_lock:
             self._cache[dataset.name][query_track_id] = result
         return result
@@ -101,14 +109,17 @@ class Retrieval:
     def _top_similar_tracks(self, query_track_id, dataset: LocalDataset):
         start_time = time.time()
         features_data = dataset.df
+        print("test 3")
         if query_track_id not in features_data['id'].values:
             # print(f"Track ID {query_track_id} not found in the data.")
             raise ValueError(f"Track ID {query_track_id} not found in the data.")
-        
+        print("test 4")
         query_track_features = features_data[features_data['id'] == query_track_id].iloc[:, 1:].values
+        print("test 7")
 
         # Calculate similarity with the given features
         similarity_matrix = cosine_similarity(query_track_features, features_data.iloc[:, 1:].values)
+        print("test 6")
 
         # Get the indices of the top N similar tracks
         # similarity 1 = the song itself, hence it should not be returned
@@ -116,7 +127,7 @@ class Retrieval:
 
         # Create a list to store rows
         result_rows = []
-
+        print("test 5")
         # Populate the list with song and artist information
         for track_index in top_indices:
             track_id = features_data.iat[track_index, features_data.columns.get_loc('id')]
