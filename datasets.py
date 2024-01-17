@@ -60,5 +60,9 @@ class Datasets:
         self.musicnn = LocalDataset("musicnn")
         self.resnet = LocalDataset("resnet")
 
+    @property
+    def vgg19(self) -> LocalDataset:
+        return self.vgg
+
 
 datasets = Datasets()
