@@ -14,14 +14,29 @@ from datasets import datasets, LocalDataset
 
 RETRIEVAL_SYSTEMS = {
     "random_baseline": lambda retN, query: retN.random_baseline(query),
+    # lyrics
     "text_tf_idf": lambda retN, query: retN.top_similar_tracks(query, datasets.tf_idf),
     "text_bert": lambda retN, query: retN.top_similar_tracks(query, datasets.lyrics_bert),
     "text_word2vec": lambda retN, query: retN.top_similar_tracks(query, datasets.word2vec),
-    "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
-    "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
-    "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
+
+    # audio
     "musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.musicnn),
+    "mfcc_bow": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_bow),
+    "mfcc_stats": lambda retN, query: retN.top_similar_tracks(query, datasets.mfcc_stats),
+    "ivec256": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec256),
+    "ivec512": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec512),
+    "ivec1024": lambda retN, query: retN.top_similar_tracks(query, datasets.ivec1024),
+    "blf_correlation": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_correlation),
+    "blf_deltaspectral": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_deltaspectral),
+    "blf_logfluc": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_logfluc),
+    "blf_spectral": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_spectral),
+    "blf_spectralcontrast": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_spectralcontrast),
+    "blf_vardeltaspectral": lambda retN, query: retN.top_similar_tracks(query, datasets.blf_vardeltaspectral),
+
+    # video
     "video_resnet": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet),
+    "video_incp": lambda retN, query: retN.top_similar_tracks(query, datasets.incp),
+    "video_vgg19": lambda retN, query: retN.top_similar_tracks(query, datasets.vgg19),
 }
 
 
