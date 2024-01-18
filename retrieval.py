@@ -46,6 +46,9 @@ class Retrieval:
                     os.makedirs("retrievals")
                 for file in os.listdir("retrievals"):
                     dataset_name = file.split(".")[0]
+                    if dataset_name == "songMeta":
+                        # not a valid cache file
+                        continue
                     with open(f"retrievals/{file}", "r") as f:
                         old_cache = json.load(f)
                     if dataset_name not in self._cache:
@@ -91,7 +94,10 @@ class Retrieval:
             if dataset.name not in self._cache:
                 self._cache[dataset.name] = {}
             if query_track_id in self._cache[dataset.name]:
-                return self._cache[dataset.name][query_track_id][:self.n]
+                cached = self._cache[dataset.name][query_track_id][:self.n]
+                # only return cached if it is the same length as n
+                if len(cached) == self.n:
+                    return cached
         result = self._top_similar_tracks(query_track_id, dataset)
         with self._cache_lock:
             self._cache[dataset.name][query_track_id] = result
