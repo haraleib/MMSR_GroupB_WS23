@@ -64,6 +64,8 @@ class Retrieval:
                 if not os.path.exists("retrievals"):
                     os.makedirs("retrievals")
                 for file in os.listdir("retrievals"):
+                    if file.split(".")[-1] != "json":
+                        continue
                     dataset_name = file.split(".")[0]
                     if dataset_name == "songMeta":
                         # not a valid cache file

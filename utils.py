@@ -59,7 +59,7 @@ RETRIEVAL_SYSTEM_TYPE_COLORS = {
 
 # TODO: colors and line styles (solid, dashed, dashdot, dotted)
 RETRIEVAL_COLOR = {
-    "random": colors.CSS4_COLORS["cyan"],
+    "random_baseline": colors.CSS4_COLORS["cyan"],
     "text_tf_idf": colors.CSS4_COLORS["blue"],
     "text_bert": colors.CSS4_COLORS["green"],
     "text_word2vec": colors.CSS4_COLORS["red"],

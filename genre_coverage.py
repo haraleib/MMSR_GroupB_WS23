@@ -6,12 +6,12 @@ from utils import unpickle_or_compute, plot_ret_sys_dict
 
 
 class GenreCoverage:
-    def __init__(self, genres: Genres):
+    def __init__(self, genres: Genres, retrieval: Retrieval = None):
         self.n = 10
         self.ratio: dict[str, float] = {}
 
         self.genres = genres
-        self.retrieval = Retrieval(n=self.n)
+        self.retrieval = retrieval if retrieval else Retrieval(n=self.n)
 
     def get_retrieval_results(self) -> dict[str, float]:
         return self.ratio

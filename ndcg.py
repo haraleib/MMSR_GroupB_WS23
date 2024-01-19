@@ -7,10 +7,10 @@ from precision_recall import RETRIEVAL_SYSTEMS
 
 
 class Ndcg:
-    def __init__(self, genres):
+    def __init__(self, genres, retrieval: Retrieval = None):
         self._n = 10
         self._genres = genres
-        self._ret = Retrieval(n=self._n)
+        self._ret = retrieval if retrieval else Retrieval(n=self._n)
         self._ndcgs: dict[str, float] = {}
 
     def get_retrieval_results(self) -> dict[str, float]:

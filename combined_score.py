@@ -33,19 +33,19 @@ class CombinedScore:
     def compute(self) -> None:
         # no pickles needed here since all other results are pickled already
 
-        pr = PrecisionRecall(self._genres)
+        pr = PrecisionRecall(self._genres, self._ret)
         pr.compute()
         precision_recall_result = pr.get_retrieval_results()
 
-        ndcg = Ndcg(self._genres)
+        ndcg = Ndcg(self._genres, self._ret)
         ndcg.compute()
         ndcg_result = ndcg.get_retrieval_results()
 
-        gc = GenreCoverage(self._genres)
+        gc = GenreCoverage(self._genres, self._ret)
         gc.compute()
         genre_coverage_result = gc.get_retrieval_results()
 
-        gd = GenreDiversity(self._genres)
+        gd = GenreDiversity(self._genres, self._ret)
         gd.compute()
         genre_diversity_result = gd.get_retrieval_results()
 
@@ -66,10 +66,10 @@ class CombinedScore:
                 genre_diversity_at_10=genre_diversity,
             )
 
-        sorted_by_f1 = sorted(self._results.items(), key=lambda x: x[1].f1_score_at_10, reverse=True)
-        sorted_by_ndcg = sorted(self._results.items(), key=lambda x: x[1].ndcg_at_10, reverse=True)
-        sorted_by_genre_coverage = sorted(self._results.items(), key=lambda x: x[1].genre_coverage_at_10, reverse=True)
-        sorted_by_genre_diversity = sorted(self._results.items(), key=lambda x: x[1].genre_diversity_at_10, reverse=True)
+        sorted_by_f1 = sorted(self._results.items(), key=lambda x: x[1].f1_score_at_10, reverse=False) # higher = better
+        sorted_by_ndcg = sorted(self._results.items(), key=lambda x: x[1].ndcg_at_10, reverse=False) # higher = better
+        sorted_by_genre_coverage = sorted(self._results.items(), key=lambda x: x[1].genre_coverage_at_10, reverse=True) # lower = better
+        sorted_by_genre_diversity = sorted(self._results.items(), key=lambda x: x[1].genre_diversity_at_10, reverse=True) # lower = better
 
         # compute the average position of each retrieval system in each of the sorted lists and average them
         self._scores = {}

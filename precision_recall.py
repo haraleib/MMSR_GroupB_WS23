@@ -15,12 +15,12 @@ class RetrievalEvalResult:
 
 
 class PrecisionRecall:
-    def __init__(self, genres: Genres):
+    def __init__(self, genres: Genres, retrieval: Retrieval = None):
         self._n = 100
         self._results: dict[str, RetrievalEvalResult] = {}
 
         self._genres = genres
-        self._ret = Retrieval(n=self._n)
+        self._ret = retrieval if retrieval else Retrieval(n=self._n)
     
     def get_retrieval_results(self) -> dict[str, RetrievalEvalResult]:
         return self._results
@@ -42,16 +42,19 @@ class PrecisionRecall:
                 recall_at_k=recall_at_k
             )
 
-    def plot_all_single(self) -> None:
+    def plot_all_single(self, filter: list[str]) -> None:
         fig, ax = plt.subplots(figsize=(14, 7), dpi=200)
 
         for name, results in self._results.items():
+            print(name)
+            if name not in filter:
+                continue
             x, y = [], []
             for k in range(1, results.n + 1):
                 x.append(results.recall_at_k[k])
                 y.append(results.precision_at_k[k])
 
-            ax.plot(x, y, label=name, zorder=3, color=self.DISTINCT_COLORS[name])
+            ax.plot(x, y, label=name, zorder=3, color=RETRIEVAL_COLOR[name])
 
         ax.grid(which="major", color="lightgrey", ls=":", lw=1)
         ax.grid(which="minor", color="lightgrey", ls=":", lw=0.5, alpha=0.8)
