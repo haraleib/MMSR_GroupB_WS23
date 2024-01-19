@@ -37,6 +37,10 @@ RETRIEVAL_SYSTEMS = {
     "video_resnet": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet),
     "video_incp": lambda retN, query: retN.top_similar_tracks(query, datasets.incp),
     "video_vgg19": lambda retN, query: retN.top_similar_tracks(query, datasets.vgg19),
+
+    # fusion
+    "early_fusion": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet), # TODO: change to actual early fusion; this is just a placeholder
+    "late_fusion": lambda retN, query: retN.top_similar_tracks(query, datasets.incp), # TODO: change to actual early fusion; this is just a placeholder
 }
 
 

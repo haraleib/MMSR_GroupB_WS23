@@ -3,7 +3,7 @@ from tqdm.notebook import tqdm
 from dataclasses import dataclass
 
 from genres import Genres
-from utils import unpickle_or_compute
+from utils import RETRIEVAL_COLOR, unpickle_or_compute
 from retrieval import Retrieval, RETRIEVAL_SYSTEMS
 
 
@@ -15,26 +15,15 @@ class RetrievalEvalResult:
 
 
 class PrecisionRecall:
-    DISTINCT_COLORS = {
-        "random_baseline": "tab:cyan",
-        "text_tf_idf": "tab:blue",
-        "text_bert": "tab:green",
-        "text_word2vec": "tab:red",
-        "mfcc_bow": "tab:purple",
-        "blf_correlation": "tab:pink",
-        "ivec256": "tab:orange",
-        "musicnn": "black",
-        "video_resnet": "tab:brown",
-        # "late_fusion": "tab:olive",
-        # "early_fusion": "tab:gray",
-    }
-
     def __init__(self, genres: Genres):
         self._n = 100
         self._results: dict[str, RetrievalEvalResult] = {}
 
         self._genres = genres
         self._ret = Retrieval(n=self._n)
+    
+    def get_retrieval_results(self) -> dict[str, RetrievalEvalResult]:
+        return self._results
 
     def compute(self) -> None:
         # calculate average precision and recall @ k across all tracks for each retrieval method
@@ -83,18 +72,20 @@ class PrecisionRecall:
         plt.legend(loc="best")
         plt.show()
 
-    def plot_each(self) -> None:
+    def plot_each(self, filter: list[str]) -> None:
         fig, axes = plt.subplots(nrows=5, ncols=2, figsize=(12, 14), dpi=200)
         axes = axes.flatten()
 
         for i, (name, results) in enumerate(self._results.items()):
+            if name not in filter:
+                continue
             x, y = [], []
             for k in range(1, results.n + 1):
                 x.append(results.recall_at_k[k])
                 y.append(results.precision_at_k[k])
 
             ax = axes[i]
-            ax.plot(x, y, label=name, zorder=3, color=self.DISTINCT_COLORS[name])
+            ax.plot(x, y, label=name, zorder=3, color=RETRIEVAL_COLOR[name])
 
             ax.grid(which="major", color="lightgrey", ls=":", lw=1)
             ax.grid(which="minor", color="lightgrey", ls=":", lw=0.5, alpha=0.8)

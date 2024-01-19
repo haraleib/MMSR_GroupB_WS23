@@ -14,6 +14,9 @@ class GenreDiversity:
         self.genres = genres
         self.retrieval = Retrieval(n=self.n)
 
+    def get_retrieval_results(self) -> dict[str, float]:
+        return self.diversity
+
     def _compute_diversity(self, ret_sys, ret_sys_name: str) -> float:
         all_unique_genres = set()
         for genre in self.genres.song_genre_map.values():
@@ -68,10 +71,10 @@ class GenreDiversity:
                 lambda: self._compute_diversity(ret_sys, ret_sys_name)
             )
 
-    def plot(self) -> None:
+    def plot(self, ret_sys_filter: list[str]) -> None:
         plot_ret_sys_dict(
             ret_sys_dict=self.diversity,
             xlabel="Genre Diversity@10",
             ylabel="Retrieval System",
-            color="xkcd:dull red"
+            filter=ret_sys_filter
         )

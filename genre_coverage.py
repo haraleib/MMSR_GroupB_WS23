@@ -13,6 +13,9 @@ class GenreCoverage:
         self.genres = genres
         self.retrieval = Retrieval(n=self.n)
 
+    def get_retrieval_results(self) -> dict[str, float]:
+        return self.ratio
+
     def _compute_coverage_ratio(self, ret_sys, ret_sys_name: str) -> float:
         all_unique_genres = set()
         for genre in self.genres.song_genre_map.values():
@@ -44,10 +47,10 @@ class GenreCoverage:
                 lambda: self._compute_coverage_ratio(ret_sys, ret_sys_name)
             )
 
-    def plot(self) -> None:
+    def plot(self, ret_sys_filter: list[str]) -> None:
         plot_ret_sys_dict(
             ret_sys_dict=self.ratio,
             xlabel="Genre Coverage@10",
             ylabel="Retrieval System",
-            color="xkcd:swamp green"
+            filter=ret_sys_filter
         )

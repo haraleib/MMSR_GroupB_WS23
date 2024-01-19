@@ -1,9 +1,9 @@
 import json
 import os
 import pickle
+from matplotlib import colors
 import pandas as pd
 import matplotlib.pyplot as plt
-
 
 def read_tsv(file: str) -> pd.DataFrame:
     return pd.read_csv(file, sep="\t")
@@ -41,18 +41,73 @@ def unpickle_or_compute(path: str, compute_function):
 
     return data
 
+RETRIEVAL_SYSTEM_TYPES = {
+    "random": ["random_baseline"],
+    "text": ["text_tf_idf", "text_bert", "text_word2vec"],
+    "audio": ["musicnn", "mfcc_bow", "mfcc_stats", "ivec256", "ivec512", "ivec1024", "blf_correlation", "blf_deltaspectral", "blf_logfluc", "blf_spectral", "blf_spectralcontrast", "blf_vardeltaspectral"],
+    "video": ["video_resnet", "video_incp", "video_vgg19"],
+    "fusion": ["early_fusion", "late_fusion"],
+}
+
+RETRIEVAL_SYSTEM_TYPE_COLORS = {
+    "random": colors.CSS4_COLORS["cyan"],
+    "text": colors.CSS4_COLORS["blue"],
+    "audio": colors.CSS4_COLORS["green"],
+    "video": colors.CSS4_COLORS["red"],
+    "fusion": colors.CSS4_COLORS["orange"],
+}
+
+# TODO: colors and line styles (solid, dashed, dashdot, dotted)
+RETRIEVAL_COLOR = {
+    "random": colors.CSS4_COLORS["cyan"],
+    "text_tf_idf": colors.CSS4_COLORS["blue"],
+    "text_bert": colors.CSS4_COLORS["green"],
+    "text_word2vec": colors.CSS4_COLORS["red"],
+    "musicnn": colors.CSS4_COLORS["black"],
+    "mfcc_bow": colors.CSS4_COLORS["purple"],
+    "mfcc_stats": colors.CSS4_COLORS["azure"],
+    "ivec256": colors.CSS4_COLORS["orange"],
+    "ivec512": colors.CSS4_COLORS["darkorange"],
+    "ivec1024": colors.CSS4_COLORS["orangered"],
+    "blf_correlation": colors.CSS4_COLORS["pink"],
+    "blf_deltaspectral": colors.CSS4_COLORS["deeppink"],
+    "blf_logfluc": colors.CSS4_COLORS["hotpink"],
+    "blf_spectral": colors.CSS4_COLORS["lightpink"],
+    "blf_spectralcontrast": colors.CSS4_COLORS["mediumvioletred"],
+    "blf_vardeltaspectral": colors.CSS4_COLORS["palevioletred"],
+    "video_resnet": colors.CSS4_COLORS["brown"],
+    "video_incp": colors.CSS4_COLORS["darkgoldenrod"],
+    "video_vgg19": colors.CSS4_COLORS["gold"],
+    "early_fusion": colors.CSS4_COLORS["olive"],
+    "late_fusion": colors.CSS4_COLORS["gray"],
+}
+
+def get_ret_sys_color(ret_sys_name: str) -> str:
+    # iterate over retrieval system types (dict of type -> list of sytems)
+    for ret_sys_type, ret_sys_list in RETRIEVAL_SYSTEM_TYPES.items():
+        if ret_sys_name in ret_sys_list:
+            return RETRIEVAL_SYSTEM_TYPE_COLORS[ret_sys_type]
+    raise Exception("this should never happen; make sure to add the retrieval system to the dicts")
+
+def get_retrieval_names_for_types(types: list[str]) -> list[str]:
+    names = []
+    for ret_sys_type, ret_sys_list in RETRIEVAL_SYSTEM_TYPES.items():
+        if ret_sys_type in types:
+            names.extend(ret_sys_list)
+    return names
 
 def plot_ret_sys_dict(
         ret_sys_dict: dict[str, float],
         xlabel: str,
         ylabel: str,
-        color: str
+        filter: list[str],
 ) -> None:
-    # Extract retrieval system names and coverage values
-    sorted_dict = {k: v for k, v in sorted(ret_sys_dict.items(), key=lambda tup: tup[1], reverse=True)}
+    # Extract retrieval system names and coverage values (filtered)
+    sorted_dict = {k: v for k, v in sorted(ret_sys_dict.items(), key=lambda tup: tup[1], reverse=True) if k in filter}
 
     ret_sys_names = list(sorted_dict.keys())
     coverage_values = list(sorted_dict.values())
+    ret_sys_colors = [get_ret_sys_color(ret_sys_name) for ret_sys_name in ret_sys_names]
 
     # Create a bar plot
     fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
@@ -71,7 +126,7 @@ def plot_ret_sys_dict(
     ax.barh(
         y=ret_sys_names,
         width=coverage_values,
-        color=color,
+        color=ret_sys_colors,
         ec="black",
         lw=0.75,
         zorder=3

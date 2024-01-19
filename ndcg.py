@@ -13,12 +13,15 @@ class Ndcg:
         self._ret = Retrieval(n=self._n)
         self._ndcgs: dict[str, float] = {}
 
-    def plot(self):
+    def get_retrieval_results(self) -> dict[str, float]:
+        return self._ndcgs
+
+    def plot(self, ret_sys_filter: list[str]) -> None:
         plot_ret_sys_dict(
             self._ndcgs,
             xlabel="nDCG@10",
             ylabel="Retrieval System",
-            color="xkcd:medium blue"
+            filter=ret_sys_filter
         )
 
     def compute(self) -> None:
