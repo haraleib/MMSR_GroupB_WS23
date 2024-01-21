@@ -8,7 +8,11 @@ from utils import read_tsv
 class LocalDataset:
     def __init__(self, name: str, df: Optional[pd.DataFrame] = None):
         self.name = name
-        self._df = df
+
+        if df is None:
+            self._df = df
+        else:
+            self.set_df(df)
 
         if not os.path.isdir("datasets"):
             raise RuntimeError(

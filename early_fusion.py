@@ -1,25 +1,41 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import pandas as pd
 from sklearn.decomposition import PCA
+from datasets import LocalDataset
 
-class EarlyFusionLibrary:
-    def __init__(self):
-        pass
 
-    def early_fusion_and_save(self, df1, df2, output_filename='datasets/id_early_fusion_mmsr.tsv'):
-        df1_pca = pd.DataFrame(PCA(n_components=0.8).fit_transform(df1.iloc[:, 1:]))
-        df1_pca["id"] = df1["id"]
+class EarlyFusion:
+    def __init__(self, d1: LocalDataset, d2: LocalDataset, n_components: float):
+        self.d1 = d1
+        self.d2 = d2
 
-        df2_pca = pd.DataFrame(PCA(n_components=0.8).fit_transform(df2.iloc[:, 1:]))
-        df2_pca["id"] = df2["id"]
+        if n_components <= 1.0:
+            n_components = int(min(len(d1.df.columns), len(d2.df.columns)) * n_components)
 
-        fused_df = pd.concat([df1_pca.set_index('id'), df2_pca.set_index('id')], axis=1).reset_index()
+        self.n_components = n_components
 
-        # Save the result to a TSV file
-        fused_df.to_csv(output_filename, sep='\t', index=False)
+        print(f"[Early Fusion] Down-projecting '{d1.name}' and '{d2.name}' with PCA to {n_components} components")
+        self.df = self._early_fusion()
 
+    def get_pca_df(self, dataset: LocalDataset) -> pd.DataFrame:
+        pca = PCA(n_components=self.n_components)
+
+        features = dataset.df.drop("id", axis=1)
+        new_df = pd.DataFrame(
+            data=pca.fit_transform(features),
+            columns=[f"{dataset.name}_{i+1}" for i in range(self.n_components)]
+        )
+
+        new_df.insert(0, "id", dataset.df["id"])
+        return new_df
+
+    def _early_fusion(self) -> pd.DataFrame:
+        return pd.merge(
+            self.get_pca_df(self.d1),
+            self.get_pca_df(self.d2),
+            on="id"
+        )
+
+    # def save(self) -> None:
+    #    # Save the result to a TSV file
+    #    output_filename = f"early_fusion_{self.d1.name}_{self.d2.name}_{self.n_components}"
+    #    self.df.to_csv(output_filename, sep="\t", index=False)
