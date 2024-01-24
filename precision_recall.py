@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from tqdm.notebook import tqdm
 from dataclasses import dataclass
 
@@ -46,7 +47,6 @@ class PrecisionRecall:
         fig, ax = plt.subplots(figsize=(14, 7), dpi=200)
 
         for name, results in self._results.items():
-            print(name)
             if name not in filter:
                 continue
             x, y = [], []
@@ -68,11 +68,16 @@ class PrecisionRecall:
 
         ax.set_xlabel("Recall")
         ax.set_ylabel("Precision")
-        ax.set_xlim(0, 0.02)
-        ax.set_ylim(0, 0.71)
+        ax.set_xlim(0, 0.021)
+        # ax.set_ylim(0, 0.71)
         ax.set_title(f"Precision-Recall Curves across all Retrieval Systems")
 
-        plt.legend(loc="best")
+        # Add a legend
+        patches = [
+            mpatches.Patch(label=name, color=RETRIEVAL_COLOR[name])
+            for name in self._results.keys() if name in filter
+        ]
+        plt.legend(handles=patches, bbox_to_anchor=(1.01, 0), loc="lower left", borderaxespad=0)
         plt.show()
 
     def plot_each(self, filter: list[str]) -> None:
@@ -99,7 +104,7 @@ class PrecisionRecall:
                 return f"{value:.4f}".rstrip("0").rstrip(".")
 
             ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
-            ax.set_xlim(0, 0.02)
+            ax.set_xlim(0, 0.021)
             ax.set_ylim(0, 0.71)
             ax.set_title(f"{name}")
 
@@ -108,6 +113,9 @@ class PrecisionRecall:
 
         fig.supxlabel("Recall", fontsize=16)
         fig.supylabel("Precision", fontsize=16)
+
+        for legend in fig.legend_elements():
+            legend.set_lineheight(4)
 
         plt.legend(loc="best")
         plt.tight_layout()
@@ -130,7 +138,7 @@ class PrecisionRecall:
             for k in range(1, self._n + 1):
                 if self._genres.is_related(song_id, retrieved_songs[k - 1]):
                     relevant_until_k += 1.0
-                
+
                 precision_at_k[k] = precision_at_k.get(k, 0.0) + relevant_until_k / k
 
                 # Sanity check: Prevent division by 0

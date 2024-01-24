@@ -26,17 +26,17 @@ class LateFusion:
         df_2 = self.df2.rename(columns={"similarity": "similarity_d2"})
 
         # Merge DataFrames
-        merged_df = pd.merge(df_1, df_2, how="outer")
+        merged_df = pd.merge(df_1, df_2, on="id", how="outer")
         merged_df.fillna(0.0, inplace=True)
 
         # Assuming the scores are already normalized between 0 and 1
         normalized_d1_scores = merged_df["similarity_d1"].values
         normalized_d2_scores = merged_df["similarity_d2"].values
 
-        if self.method == "score":
-            # Aggregate scores
-            aggregated_scores = self.d1_weight * normalized_d1_scores + self.d2_weight * normalized_d2_scores
+        # Aggregate scores
+        aggregated_scores = self.d1_weight * normalized_d1_scores + self.d2_weight * normalized_d2_scores
 
+        if self.method == "score":
             # Add the aggregated scores to the DataFrame
             merged_df["aggregated_score"] = aggregated_scores
 
@@ -52,6 +52,7 @@ class LateFusion:
 
             # Add the aggregated ranks to the DataFrame
             merged_df["aggregated_rank"] = aggregated_ranks
+            merged_df["similarity"] = aggregated_scores
 
             # Sort DataFrame based on aggregated ranks
             return merged_df.sort_values(by="aggregated_rank")

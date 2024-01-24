@@ -13,6 +13,25 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from song import songs
 from datasets import datasets, LocalDataset
+from late_fusion import LateFusion
+
+
+def do_late_fusion(retN, query: str) -> list[list[Union[int, Any]]]:
+    results1 = retN.top_similar_tracks(query, datasets.ef_bert_mfcc)
+    results2 = retN.top_similar_tracks(query, datasets.resnet)
+    lf = LateFusion(
+        df1=Retrieval.create_df_from_tracks(results1),
+        df2=Retrieval.create_df_from_tracks(results2),
+        df1_weight=0.5,
+        df2_weight=0.5,
+        method="rank"
+    )
+    return [
+        [
+            row["id"],
+            row["similarity"]
+        ] for idx, row in lf.df[:retN.n].iterrows()
+    ]
 
 
 RETRIEVAL_SYSTEMS = {
@@ -42,8 +61,10 @@ RETRIEVAL_SYSTEMS = {
     "video_vgg19": lambda retN, query: retN.top_similar_tracks(query, datasets.vgg19),
 
     # fusion
-    "early_fusion": lambda retN, query: retN.top_similar_tracks(query, datasets.resnet), # TODO: change to actual early fusion; this is just a placeholder
-    "late_fusion": lambda retN, query: retN.top_similar_tracks(query, datasets.incp), # TODO: change to actual early fusion; this is just a placeholder
+    "ef_bert_musicnn": lambda retN, query: retN.top_similar_tracks(query, datasets.ef_bert_musicnn),
+    "ef_bert_mfcc": lambda retN, query: retN.top_similar_tracks(query, datasets.ef_bert_mfcc),
+
+    "lf_bert_mfcc_musicnn": do_late_fusion,
 }
 
 
@@ -92,10 +113,10 @@ class Retrieval:
                     with (self._cache_dir / (dataset_name + ".json")).open("w") as fp:
                         json.dump(self._cache[dataset_name], fp)
 
-    def precompute_all(self):
+    def precompute_all(self, threads: int):
         self.sync_cache_with_disk()
 
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=threads) as executor:
             for retrieval in RETRIEVAL_SYSTEMS:
                 if retrieval != "random_baseline":
                     executor.submit(self.precompute, retrieval)
@@ -141,7 +162,7 @@ class Retrieval:
     # Function to retrieve top N similar tracks
     def _top_similar_tracks(self, query_track_id, dataset: LocalDataset):
         start_time = time.time()
-        features_data = dataset.df
+        features_data = dataset.df if isinstance(dataset, LocalDataset) else dataset
         if query_track_id not in features_data['id'].values:
             # print(f"Track ID {query_track_id} not found in the data.")
             raise ValueError(f"Track ID {query_track_id} not found in the data.")

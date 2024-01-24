@@ -25,15 +25,16 @@ class EarlyFusion:
             columns=[f"{dataset.name}_{i+1}" for i in range(self.n_components)]
         )
 
+        # We need to reset the index, otherwise insertion statement won't work
+        new_df.index = dataset.df.index
         new_df.insert(0, "id", dataset.df["id"])
+
         return new_df
 
     def _early_fusion(self) -> pd.DataFrame:
-        return pd.merge(
-            self.get_pca_df(self.d1),
-            self.get_pca_df(self.d2),
-            on="id"
-        )
+        pca1 = self.get_pca_df(self.d1)
+        pca2 = self.get_pca_df(self.d2)
+        return pd.merge(pca1, pca2, on="id")
 
     # def save(self) -> None:
     #    # Save the result to a TSV file
