@@ -1,9 +1,12 @@
 import json
 import os
 import pickle
-from matplotlib import colors
+from typing import Tuple
+
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
 
 def read_tsv(file: str) -> pd.DataFrame:
     return pd.read_csv(file, sep="\t")
@@ -41,53 +44,57 @@ def unpickle_or_compute(path: str, compute_function):
 
     return data
 
+
 RETRIEVAL_SYSTEM_TYPES = {
     "random": ["random_baseline"],
     "text": ["text_tf_idf", "text_bert", "text_word2vec"],
     "audio": ["musicnn", "mfcc_bow", "mfcc_stats", "ivec256", "ivec512", "ivec1024", "blf_correlation", "blf_deltaspectral", "blf_logfluc", "blf_spectral", "blf_spectralcontrast", "blf_vardeltaspectral"],
     "video": ["video_resnet", "video_incp", "video_vgg19"],
-    "fusion": ["early_fusion", "late_fusion"],
+    "fusion": ["ef_bert_musicnn", "ef_bert_mfcc", "lf_bert_mfcc_musicnn"],
 }
 
 RETRIEVAL_SYSTEM_TYPE_COLORS = {
-    "random": colors.CSS4_COLORS["cyan"],
-    "text": colors.CSS4_COLORS["blue"],
-    "audio": colors.CSS4_COLORS["green"],
-    "video": colors.CSS4_COLORS["red"],
-    "fusion": colors.CSS4_COLORS["orange"],
+    "random": "#efb743",
+    "text": "#7dc462",
+    "audio": "#0d95d0",
+    "video": "#e72f52",
+    "fusion": "#774fa0",
 }
 
 # TODO: colors and line styles (solid, dashed, dashdot, dotted)
 RETRIEVAL_COLOR = {
-    "random_baseline": colors.CSS4_COLORS["cyan"],
-    "text_tf_idf": colors.CSS4_COLORS["blue"],
-    "text_bert": colors.CSS4_COLORS["green"],
-    "text_word2vec": colors.CSS4_COLORS["red"],
-    "musicnn": colors.CSS4_COLORS["black"],
-    "mfcc_bow": colors.CSS4_COLORS["purple"],
-    "mfcc_stats": colors.CSS4_COLORS["azure"],
-    "ivec256": colors.CSS4_COLORS["orange"],
-    "ivec512": colors.CSS4_COLORS["darkorange"],
-    "ivec1024": colors.CSS4_COLORS["orangered"],
-    "blf_correlation": colors.CSS4_COLORS["pink"],
-    "blf_deltaspectral": colors.CSS4_COLORS["deeppink"],
-    "blf_logfluc": colors.CSS4_COLORS["hotpink"],
-    "blf_spectral": colors.CSS4_COLORS["lightpink"],
-    "blf_spectralcontrast": colors.CSS4_COLORS["mediumvioletred"],
-    "blf_vardeltaspectral": colors.CSS4_COLORS["palevioletred"],
-    "video_resnet": colors.CSS4_COLORS["brown"],
-    "video_incp": colors.CSS4_COLORS["darkgoldenrod"],
-    "video_vgg19": colors.CSS4_COLORS["gold"],
-    "early_fusion": colors.CSS4_COLORS["olive"],
-    "late_fusion": colors.CSS4_COLORS["gray"],
+    "random_baseline": "#efb743",
+    "text_tf_idf": "#77dc4f",
+    "text_bert": "#a7099f",
+    "text_word2vec": "#ff819d",
+    "musicnn": "#5d6ef9",
+    "mfcc_bow": "#a30000",
+    "mfcc_stats": "#36aeff",
+    "ivec256": "#c77f00",
+    "ivec512": "#8c9bff",
+    "ivec1024": "#a85800",
+    "blf_correlation": "#fd9bff",
+    "blf_deltaspectral": "#01d198",
+    "blf_logfluc": "#fe2d67",
+    "blf_spectral": "#8bd79c",
+    "blf_spectralcontrast": "#af0014",
+    "blf_vardeltaspectral": "#105f33",
+    "video_resnet": "#aad459",
+    "video_incp": "#905e41",
+    "video_vgg19": "#aa0031",
+    "ef_bert_musicnn": "#000000",
+    "ef_bert_mfcc": "#49fcf3",
+    "lf_bert_mfcc_musicnn": "#31528a",
 }
 
-def get_ret_sys_color(ret_sys_name: str) -> str:
+
+def get_ret_sys_color(ret_sys_name: str) -> Tuple[str, str]:
     # iterate over retrieval system types (dict of type -> list of sytems)
     for ret_sys_type, ret_sys_list in RETRIEVAL_SYSTEM_TYPES.items():
         if ret_sys_name in ret_sys_list:
-            return RETRIEVAL_SYSTEM_TYPE_COLORS[ret_sys_type]
+            return RETRIEVAL_SYSTEM_TYPE_COLORS[ret_sys_type], ret_sys_type
     raise Exception("this should never happen; make sure to add the retrieval system to the dicts")
+
 
 def get_retrieval_names_for_types(types: list[str]) -> list[str]:
     names = []
@@ -95,6 +102,7 @@ def get_retrieval_names_for_types(types: list[str]) -> list[str]:
         if ret_sys_type in types:
             names.extend(ret_sys_list)
     return names
+
 
 def plot_ret_sys_dict(
         ret_sys_dict: dict[str, float],
@@ -107,7 +115,14 @@ def plot_ret_sys_dict(
 
     ret_sys_names = list(sorted_dict.keys())
     coverage_values = list(sorted_dict.values())
-    ret_sys_colors = [get_ret_sys_color(ret_sys_name) for ret_sys_name in ret_sys_names]
+
+    ret_sys_colors = []
+    type_colors = {}
+
+    for ret_sys_name in ret_sys_names:
+        color, ret_sys_type = get_ret_sys_color(ret_sys_name)
+        ret_sys_colors.append(color)
+        type_colors[ret_sys_type] = color
 
     # Create a bar plot
     fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
@@ -150,6 +165,10 @@ def plot_ret_sys_dict(
             va="center",
             weight="bold"
         )
+
+    # Add a legend
+    patches = [mpatches.Patch(label=key, color=color) for key, color in type_colors.items()]
+    plt.legend(handles=patches, bbox_to_anchor=(1.01, 0.5), loc="lower left", borderaxespad=0)
 
     # Show the plot
     plt.gca().invert_yaxis()
